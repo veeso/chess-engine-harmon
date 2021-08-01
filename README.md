@@ -1,7 +1,7 @@
-# Harmon chess engine
+# ♔ chess-engine-harmon ♚
 
 <div align="center">
-  <h1>♔ chess-engine-harmon ♚</h1>
+  <img src="/assets/chess-engine-harmon.svg" width="256" height="256" />
 
   <p>
     <strong>A dependency-free chess engine library built to run anywhere.</strong>

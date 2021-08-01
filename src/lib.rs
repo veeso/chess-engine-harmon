@@ -1,3 +1,10 @@
+#![doc(html_playground_url = "https://play.rust-lang.org")]
+#![doc(
+    html_favicon_url = "https://raw.githubusercontent.com/veeso/chess-engine-harmon/main/assets/cargo/chess-engine-harmon-128.png"
+)]
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/veeso/chess-engine-harmon/main/assets/cargo/chess-engine-harmon-512.png"
+)]
 #![no_std]
 #[macro_use]
 extern crate alloc;
