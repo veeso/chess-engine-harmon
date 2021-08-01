@@ -4,7 +4,7 @@ version = "0.1.2"
 authors = ["Adam McDaniel <adam.mcdaniel17@gmail.com>", "Christian Visintin <christian dot visintin at gmail dot com>"]
 edition = "2018"
 description = "Harmon variation of the chess-engine crate."
-documentation = "https://docs.rs/chess-engine-harmon/"
+documentation = "htps://docs.rs/chess-enginze-harmon/"
 readme = "README.md"
 homepage = "https://github.com/veeso/chess-engine-harmon"
 repository = "https://github.com/veeso/chess-engine-harmon"
@@ -20,11 +20,3 @@ categories = [
 
 [dev-dependencies]
 pretty_assertions = "0.7.2"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-[[bin]]
-path = "src/bin.rs"
-name = "chess"
-
-[[example]]
-name = "terminal"
