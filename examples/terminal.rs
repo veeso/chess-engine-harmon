@@ -1,5 +1,5 @@
-extern crate chess_engine;
-use chess_engine::*;
+extern crate chess_engine_harmon;
+use chess_engine_harmon::*;
 use std::{
     convert::TryFrom,
     io::{stdin, stdout, Write},
