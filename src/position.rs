@@ -1,8 +1,21 @@
+//! # Position
+//!
+//! This module exposes the type to define a position on the chess board.
+//! A position is made up of two attributes:
+//!
+//! - the row
+//! - the column
+//!
+//! This module also exposes all the alias for the positions (e.g. `D4` or `C6`)
+//!
+
 use super::Color;
 use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
+
+// -- alias
 
 pub const A1: Position = Position::new(0, 0);
 pub const A2: Position = Position::new(1, 0);
@@ -76,6 +89,9 @@ pub const H6: Position = Position::new(5, 7);
 pub const H7: Position = Position::new(6, 7);
 pub const H8: Position = Position::new(7, 7);
 
+/// ## Position
+///
+/// Defines a position on the chess board
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Position {
     row: i32,
@@ -104,27 +120,11 @@ impl core::fmt::Display for Position {
 }
 
 impl Position {
-    /// Return the starting position for a given color's king.
-    #[inline]
-    pub const fn king_pos(color: Color) -> Self {
-        match color {
-            Color::White => Self::new(0, 4),
-            Color::Black => Self::new(7, 4),
-        }
-    }
-
-    /// Return the starting position for a given color's queen.
-    #[inline]
-    pub const fn queen_pos(color: Color) -> Self {
-        match color {
-            Color::White => Self::new(0, 3),
-            Color::Black => Self::new(7, 3),
-        }
-    }
-
+    /// ### new
+    ///
     /// Create a `Position` from its respective row or column number.
     /// The row and column numbers can be any of 0, 1, 2, 3, 4, 5, 6, or 7.
-    /// 
+    ///
     /// Examples:
     /// - `A1 = Position::new(0, 0)`
     /// - `A8 = Position::new(7, 0)`
@@ -135,6 +135,30 @@ impl Position {
         Self { row, col }
     }
 
+    /// ### king_pos
+    ///
+    /// Return the starting position for a given color's king.
+    #[inline]
+    pub const fn king_pos(color: Color) -> Self {
+        match color {
+            Color::White => Self::new(0, 4),
+            Color::Black => Self::new(7, 4),
+        }
+    }
+
+    /// ### queen_pos
+    ///
+    /// Return the starting position for a given color's queen.
+    #[inline]
+    pub const fn queen_pos(color: Color) -> Self {
+        match color {
+            Color::White => Self::new(0, 3),
+            Color::Black => Self::new(7, 3),
+        }
+    }
+
+    /// ### pgn
+    ///
     /// Parse a position from PGN. This simply just supports positions like
     /// `e4` and `D8`.
     pub fn pgn(s: &str) -> Result<Self, String> {
@@ -166,18 +190,24 @@ impl Position {
         }
     }
 
+    /// is_on_board
+    ///
     /// Is this position a valid spot on the board?
     #[inline]
     pub fn is_on_board(&self) -> bool {
         !self.is_off_board()
     }
 
+    /// ### is_off_board
+    ///
     /// Is this position NOT a valid spot on the board?
     #[inline]
     pub fn is_off_board(&self) -> bool {
         self.row < 0 || self.row > 7 || self.col < 0 || self.col > 7
     }
 
+    /// ### get_row
+    ///
     /// Get the row number of the position.
     /// This can be any of 0, 1, 2, 3, 4, 5, 6, or 7.
     #[inline]
@@ -185,11 +215,17 @@ impl Position {
         self.row
     }
 
+    /// ### get_col
+    ///
+    /// Get column index from 0 to 7
     #[inline]
     pub fn get_col(&self) -> i32 {
         self.col
     }
 
+    /// ### add_row
+    ///
+    /// Increment row by drow
     #[inline]
     fn add_row(&self, drow: i32) -> Self {
         let mut result = *self;
@@ -197,6 +233,9 @@ impl Position {
         result
     }
 
+    /// ### add_col
+    ///
+    /// Incrrement column by dcol
     #[inline]
     fn add_col(&self, dcol: i32) -> Self {
         let mut result = *self;
@@ -204,6 +243,8 @@ impl Position {
         result
     }
 
+    /// ### is_diagonal_to
+    ///
     /// Is this position diagonal to another position?
     #[inline]
     pub fn is_diagonal_to(&self, other: Self) -> bool {
@@ -212,26 +253,33 @@ impl Position {
         (self.col - other.col).abs() == (self.row - other.row).abs()
     }
 
+    /// ### diagonal_distance
+    ///
     /// Get the diagonal distance between two positions
     #[inline]
     fn diagonal_distance(&self, other: Self) -> i32 {
         (self.col - other.col).abs()
     }
-    
+    /// ### is_orthogonal_to
+    ///
     /// Is this position orthogonal to another position?
     #[inline]
     pub fn is_orthogonal_to(&self, other: Self) -> bool {
         (self.col == other.col) || (self.row == other.row)
     }
 
+    /// ### orthogonal_distance
+    ///
     /// Get the orthogonal distance between two positions
     #[inline]
     fn orthogonal_distance(&self, other: Self) -> i32 {
         (self.col - other.col).abs() + (self.row - other.row).abs()
     }
 
+    /// ### is_adjacent_to
+    ///
     /// Is this position adjacent to another position?
-    /// 
+    ///
     /// Adjacent positions have either:
     /// 1. A diagonal distance of one from each other
     /// 2. An orthogonal distance of one from each other
@@ -246,46 +294,56 @@ impl Position {
         }
     }
 
+    /// ### is_below
+    ///
     /// Is this position beneath another position on the board?
     /// Pieces "beneath" other pieces on the board have lower ranks.
-    /// 
+    ///
     /// So, for example, A7 is below A8.
     #[inline]
     pub fn is_below(&self, other: Self) -> bool {
         self.row < other.row
     }
 
+    /// ### is_above
+    ///
     /// Is this position above another position on the board?
     /// Pieces "above" other pieces on the board have higher ranks.
-    /// 
+    ///
     /// So, for example, A8 is above A8.
     #[inline]
     pub fn is_above(&self, other: Self) -> bool {
         self.row > other.row
     }
 
+    /// ### is_left_of
+    ///
     /// Is this position left of another position on the board?
     /// Pieces "left of" other pieces on the board have a lower
     /// lexigraphical column character.
-    /// 
+    ///
     /// So, for example, A8 is left of B8.
     #[inline]
     pub fn is_left_of(&self, other: Self) -> bool {
         self.col < other.col
     }
 
+    /// ### is_right_of
+    ///
     /// Is this position right of another position on the board?
     /// Pieces "right of" other pieces on the board have a higher
     /// lexigraphical column character.
-    /// 
+    ///
     /// So, for example, B8 is right of A8.
     #[inline]
     pub fn is_right_of(&self, other: Self) -> bool {
         self.col > other.col
     }
 
+    /// ### next_below
+    ///
     /// Get the position directly below this position.
-    /// 
+    ///
     /// IMPORTANT NOTE: This will NOT check for positions
     /// off of the board! You could easily get an invalid
     /// position if you do not check with the `is_on_board`
@@ -295,8 +353,10 @@ impl Position {
         Self::new(self.row - 1, self.col)
     }
 
+    /// ### next_above
+    ///
     /// Get the position directly above this position.
-    /// 
+    ///
     /// IMPORTANT NOTE: This will NOT check for positions
     /// off of the board! You could easily get an invalid
     /// position if you do not check with the `is_on_board`
@@ -306,9 +366,11 @@ impl Position {
         Self::new(self.row + 1, self.col)
     }
 
+    /// ### pawn_up
+    ///
     /// Get the next square upwards from a respective player's
     /// pawn.
-    /// 
+    ///
     /// IMPORTANT NOTE: This will NOT check for positions
     /// off of the board! You could easily get an invalid
     /// position if you do not check with the `is_on_board`
@@ -321,9 +383,11 @@ impl Position {
         }
     }
 
+    /// ### pawn_back
+    ///
     /// Get the next square backwards from a respective player's
     /// pawn.
-    /// 
+    ///
     /// IMPORTANT NOTE: This will NOT check for positions
     /// off of the board! You could easily get an invalid
     /// position if you do not check with the `is_on_board`
@@ -332,9 +396,10 @@ impl Position {
     pub fn pawn_back(&self, ally_color: Color) -> Self {
         self.pawn_up(!ally_color)
     }
-    
+    /// ### next_left
+    ///
     /// Get the position directly left of this position.
-    /// 
+    ///
     /// IMPORTANT NOTE: This will NOT check for positions
     /// off of the board! You could easily get an invalid
     /// position if you do not check with the `is_on_board`
@@ -344,8 +409,10 @@ impl Position {
         Self::new(self.row, self.col - 1)
     }
 
+    /// ### next_right
+    ///
     /// Get the position directly right of this position.
-    /// 
+    ///
     /// IMPORTANT NOTE: This will NOT check for positions
     /// off of the board! You could easily get an invalid
     /// position if you do not check with the `is_on_board`
@@ -355,6 +422,8 @@ impl Position {
         Self::new(self.row, self.col + 1)
     }
 
+    /// ### is_starting_pawn
+    ///
     /// Is this pawn on the starting rank for the respective player?
     #[inline]
     pub fn is_starting_pawn(&self, color: Color) -> bool {
@@ -364,21 +433,26 @@ impl Position {
         }
     }
 
+    /// ### is_kingside_rook
+    ///
     /// Is this the starting position of the kingside rook?
     #[inline]
     pub fn is_kingside_rook(&self) -> bool {
         (self.row == 0 || self.row == 7) && self.col == 7
     }
-    
+    /// ### is_queenside_rook
+    ///
     /// Is this the starting position of the queenside rook?
     #[inline]
     pub fn is_queenside_rook(&self) -> bool {
         (self.row == 0 || self.row == 7) && self.col == 0
     }
 
+    /// ### diagonals_to
+    ///
     /// Get the list of positions from this position to another
     /// position, moving diagonally.
-    /// 
+    ///
     /// This does _not_ include the `from` position, and includes the `to` position.
     pub fn diagonals_to(&self, to: Self) -> Vec<Self> {
         if !self.is_diagonal_to(to) {
@@ -409,9 +483,11 @@ impl Position {
         result
     }
 
+    /// ### orthogonals_to
+    ///
     /// Get the list of positions from this position to another
     /// position, moving orthogonally.
-    /// 
+    ///
     /// This does _not_ include the `from` position, and includes the `to` position.
     pub fn orthogonals_to(&self, to: Self) -> Vec<Self> {
         if !self.is_orthogonal_to(to) {
@@ -440,6 +516,9 @@ impl Position {
         result
     }
 
+    /// ### is_knight_move
+    ///
+    /// Checks whether the provided position is a valid knight move
     #[inline]
     pub fn is_knight_move(&self, other: Self) -> bool {
         (self.row - other.row).abs() == 2 && (self.col - other.col).abs() == 1

@@ -14,8 +14,8 @@
 
 ## Harmon variation
 
-This is the variation used by [Harmon](https://github.com/veeso/harmon).
-It has some additional feature to the original chess-engine, including different patches.
+This is the variation used by [Harmon](https://github.com/veeso/harmon).  
+It has some additional feature to the original chess-engine, including different patches.  
 To view changes give a look to [CHANGELOG](CHANGELOG.md)
 
 ---

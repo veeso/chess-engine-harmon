@@ -1,3 +1,88 @@
+//! # chess-engine-harmon
+//!
+//! [chess-engine-harmon](https://github.com/veeso/chess-engine-harmon) is a fork of the original [chess engine](https://github.com/adam-mcdaniel/chess-engine) library for rust.
+//! It has been designed to provide some extra functionalities compared to the original library and to fit with the tui game [Harmon](https://github.com/veeso/harmon).
+//! In addition to this, I've also made some bugfix and added test units in order to make the library safer and more reliable.
+//! Feel free to use this library instead of the original one if you prefer.
+//!
+//! ![chess-image](https://raw.githubusercontent.com/veeso/chess-engine-harmon/main/assets/web-board.png)
+//!
+//! ## Get Started
+//!
+//! ### Adding `chess-engine-harmon` as dependency
+//!
+//! ```toml
+//! chess-engine-harmon = "0.1.2"
+//! ```
+//!
+//! ## Example
+//!
+//! It's quite easy to setup the chess engine, for example this creates a default chess match, with a demonstration
+//! on how to make the computer to make a move.
+//!
+//! ```rust,no_run
+//! extern crate chess_engine_harmon;
+//!
+//! use chess_engine_harmon::{Board, Evaluate, GameResult, Move};
+//!
+//! fn main() {
+//!     let board = Board::default();
+//!
+//!     // Get the best move with 4 moves of lookahead
+//!     let (best_move, _, _) = board.get_best_next_move(4);
+//!     // Get the worst move with 3 moves of lookahead
+//!     let worst_move = board.get_worst_next_move(3);
+//!
+//!     // Get all of the possible legal moves for the given player
+//!     let legal_moves = board.get_legal_moves();
+//!     // Print the board
+//!     println!("{}", board);
+//!
+//!     print!("CPU chose to ");
+//!     match best_move {
+//!         Move::Piece(from, to) => println!("move {} to {}", from, to),
+//!         Move::KingSideCastle => println!("castle kingside"),
+//!         Move::QueenSideCastle => println!("castle queenside"),
+//!         Move::Resign => println!("resign")
+//!     }
+//!     match board.play_move(best_move) {
+//!         GameResult::Continuing(next_board) => {
+//!             println!("{}", next_board);
+//!         }
+//!         
+//!         GameResult::Victory(winner) => {
+//!             // You can use the ! operator on a player's
+//!             // color to invert.
+//!             println!("{} loses. {} is victorious.",
+//!               !winner, winner
+//!             );
+//!         }
+//!         
+//!         GameResult::IllegalMove(x) => {
+//!             eprintln!("{} is an illegal move.", x);
+//!         }
+//!         
+//!         GameResult::Stalemate => {
+//!             println!("Drawn game.");
+//!         }
+//!     }
+//! }
+//! ```
+//!
+//! Chess-engine also supports other game modes, such as Horde:
+//! ```rust,no_run
+//! extern crate chess_engine_harmon;
+//!
+//! use chess_engine_harmon::{Board, Evaluate, GameResult, Move};
+//!
+//! // TODO: complete with other variants
+//!
+//! fn main() {
+//!
+//! }
+//!
+//!
+
 #![doc(html_playground_url = "https://play.rust-lang.org")]
 #![doc(
     html_favicon_url = "https://raw.githubusercontent.com/veeso/chess-engine-harmon/main/assets/cargo/chess-engine-harmon-128.png"
@@ -12,14 +97,15 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-
 use core::convert::TryFrom;
+
+#[cfg(test)] // NOTE: Enable std for test units
+extern crate std;
+
+// -- modules
 
 mod board;
 pub use board::{Board, BoardBuilder};
-
-mod square;
-pub use square::{Square, EMPTY_SQUARE};
 
 mod piece;
 pub use piece::Piece;
@@ -27,10 +113,15 @@ pub use piece::Piece;
 mod position;
 pub use position::*;
 
+mod square;
+pub use square::Square;
+
 pub const WHITE: Color = Color::White;
 pub const BLACK: Color = Color::Black;
 
-/// The result of a move being played on the board.
+/// GameResult
+///
+/// Describes the result of a move being played on the board.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum GameResult {
     /// The game is not finished, and the game is still in play.
@@ -63,6 +154,8 @@ pub enum GameResult {
     IllegalMove(Move),
 }
 
+/// ## Color
+///
 /// The color of a piece.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Color {
@@ -95,6 +188,8 @@ impl core::ops::Not for Color {
     }
 }
 
+/// ## Move
+///
 /// A move that can be applied to a board.
 /// When applied to a board, the board assumes that the move is
 /// being applied for the current turn's player.
@@ -182,30 +277,6 @@ impl TryFrom<String> for Move {
     }
 }
 
-impl Move {
-    /// Try to parse a Move from a string.
-    ///
-    /// Possible valid formats include:
-    /// - `"resign"`
-    /// - `"resigns"`
-    /// - `"castle queenside"`
-    /// - `"O-O-O"` (correct notation)
-    /// - `"o-o-o"` (incorrect notation, but will accept)
-    /// - `"0-0-0"` (incorrect notation, but will accept)
-    /// - `"castle kingside"`
-    /// - `"O-O"` (correct notation)
-    /// - `"o-o"` (incorrect notation, but will accept)
-    /// - `"0-0"` (incorrect notation, but will accept)
-    /// - `"e2e4"`
-    /// - `"e2 e4"`
-    /// - `"e2 to e4"`
-    ///
-    /// Parsing a move such as `"knight to e4"` or `"Qxe4"` will NOT work.
-    pub fn parse(repr: String) -> Result<Self, String> {
-        Self::try_from(repr)
-    }
-}
-
 impl core::fmt::Display for Move {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> Result<(), core::fmt::Error> {
         match self {
@@ -218,22 +289,34 @@ impl core::fmt::Display for Move {
     }
 }
 
+/// ## Evaluate
+///
 /// Evaluate a board and extract information, such as the best and worst moves.
 pub trait Evaluate: Sized {
+    /// ### value_for
+    ///
     /// Get the value of the board for a given color.
     /// This subtracts the opponents value, and accounts for piece positions
     /// and material value.
     fn value_for(&self, color: Color) -> f64;
 
+    /// ### get_current_player_color
+    ///
     /// Get the current player's color.
     fn get_current_player_color(&self) -> Color;
 
+    /// ### get_legal_moves
+    ///
     /// Get the legal moves for the current player.
     fn get_legal_moves(&self) -> Vec<Move>;
 
+    /// ### apply_eval_move
+    ///
     /// Apply a move to the board for evaluation.
     fn apply_eval_move(&self, m: Move) -> Self;
 
+    /// ### get_best_next_move
+    ///
     /// Get the best move for the current player with `depth` number of moves
     /// of lookahead.
     ///
@@ -245,6 +328,7 @@ pub trait Evaluate: Sized {
     /// It's best not to use the rating value by itself for anything, as it
     /// is relative to the other player's move ratings as well.
     fn get_best_next_move(&self, depth: i32) -> (Move, u64, f64) {
+        // TODO: return custom type
         let legal_moves = self.get_legal_moves();
         let mut best_move_value = -999999.0;
         let mut best_move = Move::Resign;
@@ -270,6 +354,8 @@ pub trait Evaluate: Sized {
         (best_move, board_count, best_move_value)
     }
 
+    /// ### get_worst_next_move
+    ///
     /// Get the best move for the current player with `depth` number of moves
     /// of lookahead.
     ///
@@ -307,6 +393,8 @@ pub trait Evaluate: Sized {
         (best_move, board_count, best_move_value)
     }
 
+    /// ### minimax
+    ///
     /// Perform minimax on a certain position, and get the minimum or maximum value
     /// for a board. To get the best move, you minimize the values of the possible outcomes from your
     /// own position, and maximize the values of the replies made by the other player.

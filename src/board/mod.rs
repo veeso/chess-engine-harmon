@@ -1,162 +1,46 @@
-use super::*;
+//! # Board
+//!
+//! This module contains the data types to work with the chess board.
+//! The two most important struct are the `Board` which contains the "game" itself and the
+//! `BoardBuilder` which is an helper to build different kind of "games".
+//!
+//! The board, instead, already provides constructor for:
+//!
+//! - default chess
+//! - horde variant
+//! - Dunsany's chess (TODO:)
+//!
+
+use super::{Color, Evaluate, GameResult, Move, Piece, Position, Square, BLACK, WHITE};
+use crate::position::{
+    A1, A2, A3, A4, A7, A8, B1, B5, B8, C1, C5, C8, D1, D8, E1, E8, F1, F5, F8, G1, G5, G8, H1, H8,
+};
 use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
 use core::cmp::Ordering;
 
-pub struct BoardBuilder {
-    board: Board,
-}
+// Modules
+pub mod builder;
+// Export
+pub use builder::BoardBuilder;
 
-impl From<Board> for BoardBuilder {
-    fn from(board: Board) -> Self {
-        Self { board }
-    }
-}
-
-impl Default for BoardBuilder {
-    fn default() -> Self {
-        let mut board = Board::empty();
-        board.white_castling_rights.disable_all();
-        board.black_castling_rights.disable_all();
-        Self { board }
-    }
-}
-
-impl BoardBuilder {
-    pub fn row(mut self, piece: Piece) -> Self {
-        let mut pos = piece.get_pos();
-        while pos.get_col() > 0 {
-            pos = pos.next_left()
-        }
-
-        for _ in 0..8 {
-            *self.board.get_square(pos) = Square::from(piece.move_to(pos));
-            pos = pos.next_right();
-        }
-
-        self
-    }
-
-    pub fn column(mut self, piece: Piece) -> Self {
-        let mut pos = piece.get_pos();
-        while pos.get_row() > 0 {
-            pos = pos.next_below()
-        }
-
-        for _ in 0..8 {
-            *self.board.get_square(pos) = Square::from(piece.move_to(pos));
-            pos = pos.next_above();
-        }
-
-        self
-    }
-
-    pub fn piece(mut self, piece: Piece) -> Self {
-        let pos = piece.get_pos();
-        *self.board.get_square(pos) = Square::from(piece);
-        self
-    }
-
-    pub fn enable_castling(mut self) -> Self {
-        self.board.black_castling_rights.enable_all();
-        self.board.white_castling_rights.enable_all();
-        self
-    }
-
-    pub fn disable_castling(mut self) -> Self {
-        self.board.black_castling_rights.disable_all();
-        self.board.white_castling_rights.disable_all();
-        self
-    }
-
-    pub fn enable_queenside_castle(mut self, color: Color) -> Self {
-        match color {
-            WHITE => self.board.white_castling_rights.enable_queenside(),
-            BLACK => self.board.black_castling_rights.enable_queenside(),
-        }
-        self
-    }
-
-    pub fn disable_queenside_castle(mut self, color: Color) -> Self {
-        match color {
-            WHITE => self.board.white_castling_rights.disable_queenside(),
-            BLACK => self.board.black_castling_rights.disable_queenside(),
-        }
-        self
-    }
-
-    pub fn enable_kingside_castle(mut self, color: Color) -> Self {
-        match color {
-            WHITE => self.board.white_castling_rights.enable_kingside(),
-            BLACK => self.board.black_castling_rights.enable_kingside(),
-        }
-        self
-    }
-
-    pub fn disable_kingside_castle(mut self, color: Color) -> Self {
-        match color {
-            WHITE => self.board.white_castling_rights.disable_kingside(),
-            BLACK => self.board.black_castling_rights.disable_kingside(),
-        }
-        self
-    }
-
-    pub fn build(self) -> Board {
-        self.board
-    }
-}
+// -- Board
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct CastlingRights {
-    kingside: bool,
-    queenside: bool,
-}
+/// ## Board
+///
+/// Contains the Chess game
+pub struct Board {
+    squares: [Square; 64],
 
-impl Default for CastlingRights {
-    fn default() -> Self {
-        Self {
-            kingside: true,
-            queenside: true,
-        }
-    }
-}
+    en_passant: Option<Position>,
 
-impl CastlingRights {
-    fn can_kingside_castle(&self) -> bool {
-        self.kingside
-    }
+    white_castling_rights: CastlingRights,
+    black_castling_rights: CastlingRights,
 
-    fn can_queenside_castle(&self) -> bool {
-        self.queenside
-    }
-
-    fn disable_kingside(&mut self) {
-        self.kingside = false
-    }
-
-    fn disable_queenside(&mut self) {
-        self.queenside = false
-    }
-
-    fn disable_all(&mut self) {
-        self.disable_kingside();
-        self.disable_queenside()
-    }
-
-    fn enable_kingside(&mut self) {
-        self.kingside = true
-    }
-
-    fn enable_queenside(&mut self) {
-        self.queenside = true
-    }
-
-    fn enable_all(&mut self) {
-        self.enable_kingside();
-        self.enable_queenside()
-    }
+    turn: Color,
 }
 
 impl Default for Board {
@@ -183,18 +67,6 @@ impl Default for Board {
             .enable_castling()
             .build()
     }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Board {
-    squares: [Square; 64],
-
-    en_passant: Option<Position>,
-
-    white_castling_rights: CastlingRights,
-    black_castling_rights: CastlingRights,
-
-    turn: Color,
 }
 
 impl Evaluate for Board {
@@ -241,80 +113,6 @@ impl Evaluate for Board {
     }
 }
 
-impl core::fmt::Display for Board {
-    fn fmt(&self, f: &mut core::fmt::Formatter) -> Result<(), core::fmt::Error> {
-        let rating_bar = self.rating_bar(16);
-        let abc = if self.turn == WHITE {
-            "abcdefgh"
-        } else {
-            "hgfedcba"
-        };
-
-        write!(f, "   {}\n  ╔════════╗", abc)?;
-        let mut square_color = !self.turn;
-        let height = 8;
-        let width = 8;
-
-        for row in 0..height {
-            writeln!(f)?;
-
-            let print_row = match self.turn {
-                WHITE => height - row - 1,
-                BLACK => row,
-            };
-            write!(f, "{} ║", print_row + 1)?;
-
-            for col in 0..width {
-                let print_col = match self.turn {
-                    BLACK => width - col - 1,
-                    WHITE => col,
-                };
-
-                let pos = Position::new(print_row, print_col);
-
-                let s = if let Some(piece) = self.get_piece(pos) {
-                    piece.to_string()
-                } else {
-                    String::from(match square_color {
-                        WHITE => "░",
-                        BLACK => "▓",
-                    })
-                };
-                if Some(pos) == self.en_passant {
-                    write!(f, "\x1b[34m{}\x1b[m\x1b[0m", s)?;
-                } else if self.is_threatened(pos, self.turn) {
-                    write!(f, "\x1b[31m{}\x1b[m\x1b[0m", s)?;
-                } else if self.is_threatened(pos, !self.turn) {
-                    write!(f, "\x1b[32m{}\x1b[m\x1b[0m", s)?;
-                } else {
-                    write!(f, "{}", s)?;
-                }
-
-                square_color = !square_color;
-            }
-            write!(f, "║")?;
-
-            if row == 2 {
-                let white_adv = self.get_material_advantage(WHITE);
-                let black_adv = self.get_material_advantage(BLACK);
-
-                match white_adv.cmp(&black_adv) {
-                    Ordering::Equal => write!(f, " Both sides have equal materal")?,
-                    Ordering::Greater => write!(f, " White +{} points", white_adv)?,
-                    Ordering::Less => write!(f, " Black +{} points", black_adv)?,
-                }
-            } else if row == 3 {
-                write!(f, " {} to move", self.turn)?;
-            } else if row == 4 {
-                write!(f, " [{}]", rating_bar)?;
-            }
-            square_color = !square_color;
-        }
-
-        write!(f, "\n  ╚════════╝\n   {}\n", abc)
-    }
-}
-
 impl Board {
     /// Create the default board for the Horde variant
     pub fn horde() -> Self {
@@ -332,7 +130,7 @@ impl Board {
 
     pub fn empty() -> Self {
         Self {
-            squares: [EMPTY_SQUARE; 64],
+            squares: [Square::empty(); 64],
             en_passant: None,
 
             white_castling_rights: CastlingRights::default(),
@@ -398,7 +196,7 @@ impl Board {
         for square in &mut result.squares {
             if let Some(piece) = square.get_piece() {
                 if piece.get_color() == color {
-                    *square = EMPTY_SQUARE
+                    *square = Square::empty()
                 }
             }
         }
@@ -524,7 +322,10 @@ impl Board {
             let row = 7 - i / 8;
             let col = i % 8;
             let square_pos = Position::new(row as i32, col as i32);
-            if !square_pos.is_orthogonal_to(pos) && !square_pos.is_diagonal_to(pos) && !square_pos.is_knight_move(pos) {
+            if !square_pos.is_orthogonal_to(pos)
+                && !square_pos.is_diagonal_to(pos)
+                && !square_pos.is_knight_move(pos)
+            {
                 continue;
             }
 
@@ -562,7 +363,7 @@ impl Board {
 
         let from_square = result.get_square(from);
         if let Some(mut piece) = from_square.get_piece() {
-            *from_square = EMPTY_SQUARE;
+            *from_square = Square::empty();
 
             if piece.is_pawn() && (to.get_row() == 0 || to.get_row() == 7) {
                 piece = Piece::Queen(piece.get_color(), piece.get_pos());
@@ -598,7 +399,8 @@ impl Board {
             WHITE => {
                 self.has_no_piece(Position::new(0, 5))
                     && self.has_no_piece(Position::new(0, 6))
-                    && self.get_piece(Position::new(0, 7)) == Some(Piece::Rook(color, Position::new(0, 7)))
+                    && self.get_piece(Position::new(0, 7))
+                        == Some(Piece::Rook(color, Position::new(0, 7)))
                     && self.white_castling_rights.can_kingside_castle()
                     && !self.is_in_check(color)
                     && !self.is_threatened(right_of_king, color)
@@ -607,7 +409,8 @@ impl Board {
             BLACK => {
                 self.has_no_piece(Position::new(7, 5))
                     && self.has_no_piece(Position::new(7, 6))
-                    && self.get_piece(Position::new(7, 7)) == Some(Piece::Rook(color, Position::new(7, 7)))
+                    && self.get_piece(Position::new(7, 7))
+                        == Some(Piece::Rook(color, Position::new(7, 7)))
                     && self.black_castling_rights.can_kingside_castle()
                     && !self.is_in_check(color)
                     && !self.is_threatened(right_of_king, color)
@@ -623,16 +426,18 @@ impl Board {
                 self.has_no_piece(Position::new(0, 1))
                     && self.has_no_piece(Position::new(0, 2))
                     && self.has_no_piece(Position::new(0, 3))
-                    && self.get_piece(Position::new(0, 0)) == Some(Piece::Rook(color, Position::new(0, 0)))
+                    && self.get_piece(Position::new(0, 0))
+                        == Some(Piece::Rook(color, Position::new(0, 0)))
                     && self.white_castling_rights.can_queenside_castle()
                     && !self.is_in_check(color)
                     && !self.is_threatened(Position::queen_pos(color), color)
-                }
+            }
             BLACK => {
                 self.has_no_piece(Position::new(7, 1))
                     && self.has_no_piece(Position::new(7, 2))
                     && self.has_no_piece(Position::new(7, 3))
-                    && self.get_piece(Position::new(7, 0)) == Some(Piece::Rook(color, Position::new(7, 0)))
+                    && self.get_piece(Position::new(7, 0))
+                        == Some(Piece::Rook(color, Position::new(7, 0)))
                     && self.black_castling_rights.can_queenside_castle()
                     && !self.is_in_check(color)
                     && !self.is_threatened(Position::queen_pos(color), color)
@@ -650,12 +455,11 @@ impl Board {
                     ((if let Some(en_passant) = self.en_passant {
                         (en_passant == from.pawn_up(player_color).next_left()
                             || en_passant == from.pawn_up(player_color).next_right()
-                            && en_passant == to)
+                                && en_passant == to)
                             && c == player_color
                     } else {
                         false
-                    }) || piece.is_legal_move(to, self)
-                        && piece.get_color() == player_color)
+                    }) || piece.is_legal_move(to, self) && piece.get_color() == player_color)
                         && !self.apply_move(m).is_in_check(player_color)
                 }
                 Some(piece) => {
@@ -668,7 +472,6 @@ impl Board {
             Move::Resign => true,
         }
     }
-    
     /// Does the respective player have sufficient material?
     pub fn has_sufficient_material(&self, color: Color) -> bool {
         let mut pieces = vec![];
@@ -771,7 +574,7 @@ impl Board {
                     {
                         result.squares[((7 - en_passant.pawn_back(player_color).get_row()) * 8
                             + en_passant.get_col())
-                            as usize] = EMPTY_SQUARE;
+                            as usize] = Square::empty();
                     }
                 }
 
@@ -799,5 +602,137 @@ impl Board {
         } else {
             GameResult::IllegalMove(m)
         }
+    }
+}
+
+// -- Castling rights
+
+/// ### CastlingRights
+///
+/// Defines the castling rights for the game
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct CastlingRights {
+    kingside: bool,
+    queenside: bool,
+}
+
+impl Default for CastlingRights {
+    fn default() -> Self {
+        Self {
+            kingside: true,
+            queenside: true,
+        }
+    }
+}
+
+impl CastlingRights {
+    fn can_kingside_castle(&self) -> bool {
+        self.kingside
+    }
+
+    fn can_queenside_castle(&self) -> bool {
+        self.queenside
+    }
+
+    fn disable_kingside(&mut self) {
+        self.kingside = false
+    }
+
+    fn disable_queenside(&mut self) {
+        self.queenside = false
+    }
+
+    fn disable_all(&mut self) {
+        self.disable_kingside();
+        self.disable_queenside()
+    }
+
+    fn enable_kingside(&mut self) {
+        self.kingside = true
+    }
+
+    fn enable_queenside(&mut self) {
+        self.queenside = true
+    }
+
+    fn enable_all(&mut self) {
+        self.enable_kingside();
+        self.enable_queenside()
+    }
+}
+
+// -- board fmt
+
+impl core::fmt::Display for Board {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> Result<(), core::fmt::Error> {
+        let rating_bar = self.rating_bar(16);
+        let abc = if self.turn == WHITE {
+            "abcdefgh"
+        } else {
+            "hgfedcba"
+        };
+
+        write!(f, "   {}\n  ╔════════╗", abc)?;
+        let mut square_color = !self.turn;
+        let height = 8;
+        let width = 8;
+
+        for row in 0..height {
+            writeln!(f)?;
+
+            let print_row = match self.turn {
+                WHITE => height - row - 1,
+                BLACK => row,
+            };
+            write!(f, "{} ║", print_row + 1)?;
+
+            for col in 0..width {
+                let print_col = match self.turn {
+                    BLACK => width - col - 1,
+                    WHITE => col,
+                };
+
+                let pos = Position::new(print_row, print_col);
+
+                let s = if let Some(piece) = self.get_piece(pos) {
+                    piece.to_string()
+                } else {
+                    String::from(match square_color {
+                        WHITE => "░",
+                        BLACK => "▓",
+                    })
+                };
+                if Some(pos) == self.en_passant {
+                    write!(f, "\x1b[34m{}\x1b[m\x1b[0m", s)?;
+                } else if self.is_threatened(pos, self.turn) {
+                    write!(f, "\x1b[31m{}\x1b[m\x1b[0m", s)?;
+                } else if self.is_threatened(pos, !self.turn) {
+                    write!(f, "\x1b[32m{}\x1b[m\x1b[0m", s)?;
+                } else {
+                    write!(f, "{}", s)?;
+                }
+
+                square_color = !square_color;
+            }
+            write!(f, "║")?;
+
+            if row == 2 {
+                let white_adv = self.get_material_advantage(WHITE);
+                let black_adv = self.get_material_advantage(BLACK);
+
+                match white_adv.cmp(&black_adv) {
+                    Ordering::Equal => write!(f, " Both sides have equal materal")?,
+                    Ordering::Greater => write!(f, " White +{} points", white_adv)?,
+                    Ordering::Less => write!(f, " Black +{} points", black_adv)?,
+                }
+            } else if row == 3 {
+                write!(f, " {} to move", self.turn)?;
+            } else if row == 4 {
+                write!(f, " [{}]", rating_bar)?;
+            }
+            square_color = !square_color;
+        }
+
+        write!(f, "\n  ╚════════╝\n   {}\n", abc)
     }
 }
