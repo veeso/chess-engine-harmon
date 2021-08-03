@@ -349,7 +349,7 @@ impl Piece {
     #[inline]
     pub fn is_queenside_rook(&self) -> bool {
         if let Self::Rook(_, pos) = self {
-            pos.is_queenside_rook()
+            pos.is_queenside_rook(self.get_color())
         } else {
             false
         }
@@ -362,7 +362,7 @@ impl Piece {
     #[inline]
     pub fn is_kingside_rook(&self) -> bool {
         if let Self::Rook(_, pos) = self {
-            pos.is_kingside_rook()
+            pos.is_kingside_rook(self.get_color())
         } else {
             false
         }

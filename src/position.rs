@@ -213,7 +213,7 @@ impl Position {
     #[inline]
     pub fn is_diagonal_to(&self, other: Self) -> bool {
         // Algorithm for determining whether or not two squares are diagonal
-        // https://math.stackexchange.com/questions/1194565/how-to-know-if-two-points-are-diagonally-aligned
+        // <https://math.stackexchange.com/questions/1194565/how-to-know-if-two-points-are-diagonally-aligned>
         (self.col - other.col).abs() == (self.row - other.row).abs()
     }
 
@@ -401,15 +401,21 @@ impl Position {
     ///
     /// Is this the starting position of the kingside rook?
     #[inline]
-    pub fn is_kingside_rook(&self) -> bool {
-        (self.row == 0 || self.row == 7) && self.col == 7
+    pub fn is_kingside_rook(&self, color: Color) -> bool {
+        match color {
+            Color::Black => self == &H8,
+            Color::White => self == &H1,
+        }
     }
     /// ### is_queenside_rook
     ///
     /// Is this the starting position of the queenside rook?
     #[inline]
-    pub fn is_queenside_rook(&self) -> bool {
-        (self.row == 0 || self.row == 7) && self.col == 0
+    pub fn is_queenside_rook(&self, color: Color) -> bool {
+        match color {
+            Color::Black => self == &A8,
+            Color::White => self == &A1,
+        }
     }
 
     /// ### diagonals_to
@@ -519,14 +525,204 @@ mod test {
     }
 
     #[test]
+    fn test_position_getters() {
+        assert_eq!(D5.get_col(), 3);
+        assert_eq!(D5.get_row(), 4);
+    }
+
+    #[test]
+    fn test_position_add_col() {
+        assert_eq!(D5.add_col(2), F5);
+    }
+
+    #[test]
+    fn test_position_add_row() {
+        assert_eq!(A2.add_row(3), A5);
+    }
+
+    #[test]
+    fn test_position_is_diagonal_to() {
+        assert_eq!(A2.is_diagonal_to(E6), true);
+        assert_eq!(A2.is_diagonal_to(F7), true);
+        assert_eq!(H1.is_diagonal_to(A8), true);
+        assert_eq!(A2.is_diagonal_to(F8), false);
+        assert_eq!(A2.is_diagonal_to(A8), false);
+    }
+
+    #[test]
+    fn test_position_diagonal_distance() {
+        assert_eq!(A2.diagonal_distance(E6), 4);
+        assert_eq!(C3.diagonal_distance(Position::new(-1, -1)), 3); // Negative distance
+        assert_eq!(
+            Position::new(-1, -1).diagonal_distance(Position::new(-4, -4)),
+            3
+        ); // Negative distance
+    }
+
+    #[test]
+    fn test_position_is_orthogonal() {
+        assert_eq!(A2.is_orthogonal_to(A6), true);
+        assert_eq!(A2.is_orthogonal_to(F2), true);
+        assert_eq!(A2.is_orthogonal_to(C8), false);
+    }
+
+    #[test]
+    fn test_position_orthogonal_distance() {
+        assert_eq!(A2.orthogonal_distance(A6), 4);
+        assert_eq!(A2.orthogonal_distance(F2), 5);
+        assert_eq!(
+            Position::new(0, -5).orthogonal_distance(Position::new(0, -10)),
+            5
+        ); // Negative
+    }
+
+    #[test]
+    fn test_position_is_adjacent_to() {
+        assert_eq!(D4.is_adjacent_to(C3), true);
+        assert_eq!(D4.is_adjacent_to(C4), true);
+        assert_eq!(D4.is_adjacent_to(C5), true);
+        assert_eq!(D4.is_adjacent_to(D5), true);
+        assert_eq!(D4.is_adjacent_to(E5), true);
+        assert_eq!(D4.is_adjacent_to(E4), true);
+        assert_eq!(D4.is_adjacent_to(E3), true);
+        assert_eq!(D4.is_adjacent_to(D3), true);
+        assert_eq!(D4.is_adjacent_to(D2), false);
+    }
+
+    #[test]
+    fn test_position_is_below() {
+        assert_eq!(D4.is_below(D5), true);
+        assert_eq!(D4.is_below(D8), true);
+        assert_eq!(D4.is_below(G8), true);
+        assert_eq!(D4.is_below(D4), false);
+        assert_eq!(D4.is_below(A1), false);
+    }
+
+    #[test]
+    fn test_position_is_above() {
+        assert_eq!(D4.is_above(D2), true);
+        assert_eq!(D4.is_above(A1), true);
+        assert_eq!(D4.is_above(G3), true);
+        assert_eq!(D4.is_above(D4), false);
+        assert_eq!(D4.is_above(A8), false);
+    }
+
+    #[test]
+    fn test_position_is_left_of() {
+        assert_eq!(D4.is_left_of(F4), true);
+        assert_eq!(D4.is_left_of(E8), true);
+        assert_eq!(D4.is_left_of(D6), false);
+        assert_eq!(D4.is_left_of(D4), false);
+        assert_eq!(D4.is_left_of(A1), false);
+    }
+
+    #[test]
+    fn test_position_is_right_of() {
+        assert_eq!(D4.is_right_of(C4), true);
+        assert_eq!(D4.is_right_of(C1), true);
+        assert_eq!(D4.is_right_of(D7), false);
+        assert_eq!(D4.is_right_of(D4), false);
+        assert_eq!(D4.is_right_of(H8), false);
+    }
+
+    #[test]
+    fn test_position_next_below() {
+        assert_eq!(D4.next_below(), D3);
+    }
+
+    #[test]
+    fn test_position_next_above() {
+        assert_eq!(D4.next_above(), D5);
+    }
+
+    #[test]
+    fn test_position_pawn_up() {
+        assert_eq!(D2.pawn_up(Color::White), D3);
+        assert_eq!(D7.pawn_up(Color::Black), D6);
+    }
+
+    #[test]
+    fn test_position_pawn_back() {
+        assert_eq!(D3.pawn_back(Color::White), D2);
+        assert_eq!(D6.pawn_back(Color::Black), D7);
+    }
+
+    #[test]
+    fn test_position_next_left() {
+        assert_eq!(D3.next_left(), C3);
+    }
+
+    #[test]
+    fn test_position_next_right() {
+        assert_eq!(D3.next_right(), E3);
+    }
+
+    #[test]
+    fn test_position_is_starting_pawn() {
+        assert_eq!(A2.is_starting_pawn(Color::White), true);
+        assert_eq!(B2.is_starting_pawn(Color::White), true);
+        assert_eq!(C2.is_starting_pawn(Color::White), true);
+        assert_eq!(D2.is_starting_pawn(Color::White), true);
+        assert_eq!(E2.is_starting_pawn(Color::White), true);
+        assert_eq!(F2.is_starting_pawn(Color::White), true);
+        assert_eq!(G2.is_starting_pawn(Color::White), true);
+        assert_eq!(H2.is_starting_pawn(Color::White), true);
+        assert_eq!(A7.is_starting_pawn(Color::Black), true);
+        assert_eq!(B7.is_starting_pawn(Color::Black), true);
+        assert_eq!(C7.is_starting_pawn(Color::Black), true);
+        assert_eq!(D7.is_starting_pawn(Color::Black), true);
+        assert_eq!(E7.is_starting_pawn(Color::Black), true);
+        assert_eq!(F7.is_starting_pawn(Color::Black), true);
+        assert_eq!(G7.is_starting_pawn(Color::Black), true);
+        assert_eq!(H7.is_starting_pawn(Color::Black), true);
+        // -- bad
+        assert_eq!(D4.is_starting_pawn(Color::White), false);
+        assert_eq!(D6.is_starting_pawn(Color::Black), false);
+    }
+
+    #[test]
+    fn test_position_is_kingside_rook() {
+        assert_eq!(H1.is_kingside_rook(Color::White), true);
+        assert_eq!(H1.is_kingside_rook(Color::Black), false);
+        assert_eq!(H8.is_kingside_rook(Color::White), false);
+        assert_eq!(H8.is_kingside_rook(Color::Black), true);
+    }
+
+    #[test]
+    fn test_position_is_queenside_rook() {
+        assert_eq!(A1.is_queenside_rook(Color::White), true);
+        assert_eq!(A1.is_queenside_rook(Color::Black), false);
+        assert_eq!(A8.is_queenside_rook(Color::White), false);
+        assert_eq!(A8.is_queenside_rook(Color::Black), true);
+    }
+
+    #[test]
+    fn test_position_diagonals_to() {
+        assert_eq!(D4.diagonals_to(H8), vec![E5, F6, G7, H8]);
+        assert_eq!(G8.diagonals_to(B3), vec![F7, E6, D5, C4, B3]);
+        assert_eq!(A7.diagonals_to(F2), vec![B6, C5, D4, E3, F2]);
+        assert_eq!(H1.diagonals_to(A8), vec![G2, F3, E4, D5, C6, B7, A8]);
+        assert_eq!(H1.diagonals_to(A1), vec![]); // Not diagonal to
+    }
+
+    #[test]
+    fn test_position_orthogonals_to() {
+        assert_eq!(D4.orthogonals_to(H4), vec![E4, F4, G4, H4]);
+        assert_eq!(A1.orthogonals_to(H1), vec![B1, C1, D1, E1, F1, G1, H1]);
+        assert_eq!(B1.orthogonals_to(B8), vec![B2, B3, B4, B5, B6, B7, B8]);
+        assert_eq!(D8.orthogonals_to(D1), vec![D7, D6, D5, D4, D3, D2, D1]);
+        assert_eq!(A1.orthogonals_to(H8), vec![]); // Non-orthogonal
+    }
+
+    #[test]
     fn test_position_on_off_board() {
         // -- on board
-        assert_eq!(Position::new(0, 4).is_on_board(), true);
-        assert_eq!(Position::new(0, 4).is_off_board(), false);
-        assert_eq!(Position::new(0, 0).is_on_board(), true);
-        assert_eq!(Position::new(0, 0).is_off_board(), false);
-        assert_eq!(Position::new(7, 7).is_on_board(), true);
-        assert_eq!(Position::new(7, 7).is_off_board(), false);
+        assert_eq!(A4.is_on_board(), true);
+        assert_eq!(A4.is_off_board(), false);
+        assert_eq!(A1.is_on_board(), true);
+        assert_eq!(A1.is_off_board(), false);
+        assert_eq!(H8.is_on_board(), true);
+        assert_eq!(H8.is_off_board(), false);
         // -- off board
         assert_eq!(Position::new(-1, 4).is_on_board(), false);
         assert_eq!(Position::new(-1, 4).is_off_board(), true);
