@@ -10,10 +10,7 @@
 //!
 
 use super::Color;
-use alloc::{
-    string::{String, ToString},
-    vec::Vec,
-};
+use alloc::vec::Vec;
 
 // -- alias
 
@@ -154,39 +151,6 @@ impl Position {
         match color {
             Color::White => Self::new(0, 3),
             Color::Black => Self::new(7, 3),
-        }
-    }
-
-    /// ### pgn
-    ///
-    /// Parse a position from PGN. This simply just supports positions like
-    /// `e4` and `D8`.
-    pub fn pgn(s: &str) -> Result<Self, String> {
-        let s = s.trim().to_lowercase();
-        let col = s.chars().next().ok_or(format!("invalid pgn `{}`", s))?;
-        let row = s
-            .chars()
-            .nth(1)
-            .ok_or(format!("invalid pgn `{}`", s))?
-            .to_string()
-            .parse::<u32>()
-            .map_err(|_| format!("invalid pgn `{}`", s))? as i32;
-        let c = match col {
-            'a' => 0,
-            'b' => 1,
-            'c' => 2,
-            'd' => 3,
-            'e' => 4,
-            'f' => 5,
-            'g' => 6,
-            'h' => 7,
-            _ => return Err(format!("invalid column character `{}`", col)),
-        };
-
-        if 1 <= row || row <= 8 {
-            Ok(Self::new(row - 1, c))
-        } else {
-            Err(format!("invalid row number `{}`", row))
         }
     }
 
@@ -523,5 +487,71 @@ impl Position {
     pub fn is_knight_move(&self, other: Self) -> bool {
         (self.row - other.row).abs() == 2 && (self.col - other.col).abs() == 1
             || (self.row - other.row).abs() == 1 && (self.col - other.col).abs() == 2
+    }
+}
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn test_position_new() {
+        let position: Position = Position::new(0, 4);
+        assert_eq!(position.row, 0);
+        assert_eq!(position.col, 4);
+        // queen pos
+        let position: Position = Position::queen_pos(Color::White);
+        assert_eq!(position.row, 0);
+        assert_eq!(position.col, 3);
+        let position: Position = Position::queen_pos(Color::Black);
+        assert_eq!(position.row, 7);
+        assert_eq!(position.col, 3);
+        // king pos
+        let position: Position = Position::king_pos(Color::White);
+        assert_eq!(position.row, 0);
+        assert_eq!(position.col, 4);
+        let position: Position = Position::king_pos(Color::Black);
+        assert_eq!(position.row, 7);
+        assert_eq!(position.col, 4);
+    }
+
+    #[test]
+    fn test_position_on_off_board() {
+        // -- on board
+        assert_eq!(Position::new(0, 4).is_on_board(), true);
+        assert_eq!(Position::new(0, 4).is_off_board(), false);
+        assert_eq!(Position::new(0, 0).is_on_board(), true);
+        assert_eq!(Position::new(0, 0).is_off_board(), false);
+        assert_eq!(Position::new(7, 7).is_on_board(), true);
+        assert_eq!(Position::new(7, 7).is_off_board(), false);
+        // -- off board
+        assert_eq!(Position::new(-1, 4).is_on_board(), false);
+        assert_eq!(Position::new(-1, 4).is_off_board(), true);
+        assert_eq!(Position::new(0, -4).is_on_board(), false);
+        assert_eq!(Position::new(0, -4).is_off_board(), true);
+        assert_eq!(Position::new(8, 4).is_on_board(), false);
+        assert_eq!(Position::new(8, 4).is_off_board(), true);
+        assert_eq!(Position::new(2, 14).is_on_board(), false);
+        assert_eq!(Position::new(2, 14).is_off_board(), true);
+    }
+
+    #[test]
+    fn test_position_knight_move() {
+        // Knight at d5; moves are b6, c3, e7, f6, f4, e3, c3, b4
+        assert_eq!(D5.is_knight_move(B6), true);
+        assert_eq!(D5.is_knight_move(C3), true);
+        assert_eq!(D5.is_knight_move(E7), true);
+        assert_eq!(D5.is_knight_move(F6), true);
+        assert_eq!(D5.is_knight_move(F4), true);
+        assert_eq!(D5.is_knight_move(E3), true);
+        assert_eq!(D5.is_knight_move(C3), true);
+        assert_eq!(D5.is_knight_move(B4), true);
+        // bad moves
+        assert_eq!(D5.is_knight_move(D6), false);
+        assert_eq!(D5.is_knight_move(A1), false);
+        assert_eq!(D5.is_knight_move(F3), false);
     }
 }
