@@ -28,10 +28,10 @@ pub use builder::BoardBuilder;
 
 // -- Board
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 /// ## Board
 ///
 /// Contains the Chess game
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Board {
     squares: [Square; 64],
 
@@ -66,50 +66,6 @@ impl Default for Board {
             .piece(Piece::Rook(WHITE, H1))
             .enable_castling()
             .build()
-    }
-}
-
-impl Evaluate for Board {
-    #[inline]
-    fn value_for(&self, ally_color: Color) -> f64 {
-        self.squares
-            .iter()
-            .map(|square| match square.get_piece() {
-                Some(piece) => {
-                    if piece.get_color() == ally_color {
-                        piece.get_weighted_value()
-                    } else {
-                        -piece.get_weighted_value()
-                    }
-                }
-                None => 0.0,
-            })
-            .sum()
-    }
-
-    #[inline]
-    fn get_current_player_color(&self) -> Color {
-        self.turn
-    }
-
-    #[inline]
-    fn apply_eval_move(&self, m: Move) -> Self {
-        self.apply_move(m).change_turn()
-    }
-
-    #[inline]
-    fn get_legal_moves(&self) -> Vec<Move> {
-        let mut result = vec![];
-        let color = self.get_current_player_color();
-        for square in &self.squares {
-            if let Some(piece) = square.get_piece() {
-                if piece.get_color() == color {
-                    result.extend(piece.get_legal_moves(self))
-                }
-            }
-        }
-
-        result
     }
 }
 
@@ -605,59 +561,49 @@ impl Board {
     }
 }
 
-// -- Castling rights
+// -- Evaluate
 
-/// ### CastlingRights
-///
-/// Defines the castling rights for the game
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct CastlingRights {
-    kingside: bool,
-    queenside: bool,
-}
+impl Evaluate for Board {
+    #[inline]
+    fn value_for(&self, ally_color: Color) -> f64 {
+        self.squares
+            .iter()
+            .map(|square| match square.get_piece() {
+                Some(piece) => {
+                    if piece.get_color() == ally_color {
+                        piece.get_weighted_value()
+                    } else {
+                        -piece.get_weighted_value()
+                    }
+                }
+                None => 0.0,
+            })
+            .sum()
+    }
 
-impl Default for CastlingRights {
-    fn default() -> Self {
-        Self {
-            kingside: true,
-            queenside: true,
+    #[inline]
+    fn get_current_player_color(&self) -> Color {
+        self.turn
+    }
+
+    #[inline]
+    fn apply_eval_move(&self, m: Move) -> Self {
+        self.apply_move(m).change_turn()
+    }
+
+    #[inline]
+    fn get_legal_moves(&self) -> Vec<Move> {
+        let mut result = vec![];
+        let color = self.get_current_player_color();
+        for square in &self.squares {
+            if let Some(piece) = square.get_piece() {
+                if piece.get_color() == color {
+                    result.extend(piece.get_legal_moves(self))
+                }
+            }
         }
-    }
-}
 
-impl CastlingRights {
-    fn can_kingside_castle(&self) -> bool {
-        self.kingside
-    }
-
-    fn can_queenside_castle(&self) -> bool {
-        self.queenside
-    }
-
-    fn disable_kingside(&mut self) {
-        self.kingside = false
-    }
-
-    fn disable_queenside(&mut self) {
-        self.queenside = false
-    }
-
-    fn disable_all(&mut self) {
-        self.disable_kingside();
-        self.disable_queenside()
-    }
-
-    fn enable_kingside(&mut self) {
-        self.kingside = true
-    }
-
-    fn enable_queenside(&mut self) {
-        self.queenside = true
-    }
-
-    fn enable_all(&mut self) {
-        self.enable_kingside();
-        self.enable_queenside()
+        result
     }
 }
 
@@ -734,5 +680,61 @@ impl core::fmt::Display for Board {
         }
 
         write!(f, "\n  ╚════════╝\n   {}\n", abc)
+    }
+}
+
+// -- Castling rights
+
+/// ### CastlingRights
+///
+/// Defines the castling rights for the game
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct CastlingRights {
+    kingside: bool,
+    queenside: bool,
+}
+
+impl Default for CastlingRights {
+    fn default() -> Self {
+        Self {
+            kingside: true,
+            queenside: true,
+        }
+    }
+}
+
+impl CastlingRights {
+    fn can_kingside_castle(&self) -> bool {
+        self.kingside
+    }
+
+    fn can_queenside_castle(&self) -> bool {
+        self.queenside
+    }
+
+    fn disable_kingside(&mut self) {
+        self.kingside = false
+    }
+
+    fn disable_queenside(&mut self) {
+        self.queenside = false
+    }
+
+    fn disable_all(&mut self) {
+        self.disable_kingside();
+        self.disable_queenside()
+    }
+
+    fn enable_kingside(&mut self) {
+        self.kingside = true
+    }
+
+    fn enable_queenside(&mut self) {
+        self.queenside = true
+    }
+
+    fn enable_all(&mut self) {
+        self.enable_kingside();
+        self.enable_queenside()
     }
 }
