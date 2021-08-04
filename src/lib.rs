@@ -115,7 +115,7 @@ pub use square::Square;
 pub const WHITE: Color = Color::White;
 pub const BLACK: Color = Color::Black;
 
-/// GameResult
+/// ## GameResult
 ///
 /// Describes the result of a move being played on the board.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -257,6 +257,11 @@ pub trait Evaluate: Sized {
     /// Get the legal moves for the current player.
     fn get_legal_moves(&self) -> Vec<Move>;
 
+    /// ### get_piece_legal_moves
+    ///
+    /// Get legal moves for piece at provided position
+    fn get_piece_legal_moves(&self, pos: Position) -> Vec<Move>;
+
     /// ### apply_eval_move
     ///
     /// Apply a move to the board for evaluation.
@@ -275,7 +280,6 @@ pub trait Evaluate: Sized {
     /// It's best not to use the rating value by itself for anything, as it
     /// is relative to the other player's move ratings as well.
     fn get_best_next_move(&self, depth: i32) -> (Move, u64, f64) {
-        // TODO: return custom type
         let legal_moves = self.get_legal_moves();
         let mut best_move_value = -999999.0;
         let mut best_move = Move::Resign;
@@ -303,11 +307,11 @@ pub trait Evaluate: Sized {
 
     /// ### get_worst_next_move
     ///
-    /// Get the best move for the current player with `depth` number of moves
+    /// Get the worst move for the current player with `depth` number of moves
     /// of lookahead.
     ///
     /// This method returns
-    /// 1. The best move
+    /// 1. The worst move
     /// 2. The number of boards evaluated to come to a conclusion
     /// 3. The rating of the best move
     ///
@@ -419,5 +423,19 @@ pub trait Evaluate: Sized {
         }
 
         best_move_value
+    }
+}
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+    use alloc::string::ToString;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn test_fmt_color() {
+        assert_eq!(BLACK.to_string(), "Black");
+        assert_eq!(WHITE.to_string(), "White");
     }
 }

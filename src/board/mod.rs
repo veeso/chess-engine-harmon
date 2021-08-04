@@ -605,6 +605,17 @@ impl Evaluate for Board {
 
         result
     }
+
+    #[inline]
+    fn get_piece_legal_moves(&self, pos: Position) -> Vec<Move> {
+        let color = self.get_current_player_color();
+        if let Some(piece) = self.get_piece(pos) {
+            if piece.get_color() == color {
+                return piece.get_legal_moves(self);
+            }
+        }
+        Vec::new()
+    }
 }
 
 // -- board fmt
