@@ -1065,6 +1065,22 @@ mod test {
     }
 
     #[test]
+    fn test_piece_get_pawn_legal_moves_discovered_check() {
+        // Discovered check by rook
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Pawn(Color::White, E4))
+            .piece(Piece::Pawn(Color::Black, F5)) // Could capture, but discovered check by rook
+            .piece(Piece::Rook(Color::Black, E8))
+            .piece(Piece::King(Color::White, E1))
+            .build();
+        assert_eq!(
+            Piece::Pawn(Color::White, E4).get_legal_moves(&board),
+            vec![Move::Piece(E4, E5)]
+        );
+    }
+
+    #[test]
     fn test_piece_get_king_legal_moves_starting_position() {
         // King without free squares
         assert_eq!(
@@ -1266,83 +1282,437 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_queen_legal_moves() {
-        // TODO: impl
+    fn test_piece_get_queen_legal_moves_free() {
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Queen(Color::White, E4))
+            .build();
+        assert_eq!(
+            Piece::Queen(Color::White, E4).get_legal_moves(&board),
+            vec![
+                Move::Piece(E4, B1),
+                Move::Piece(E4, H1),
+                Move::Piece(E4, C2),
+                Move::Piece(E4, G2),
+                Move::Piece(E4, D3),
+                Move::Piece(E4, F3),
+                Move::Piece(E4, D5),
+                Move::Piece(E4, F5),
+                Move::Piece(E4, C6),
+                Move::Piece(E4, G6),
+                Move::Piece(E4, B7),
+                Move::Piece(E4, H7),
+                Move::Piece(E4, A8),
+                Move::Piece(E4, E1),
+                Move::Piece(E4, E2),
+                Move::Piece(E4, E3),
+                Move::Piece(E4, E5),
+                Move::Piece(E4, E6),
+                Move::Piece(E4, E7),
+                Move::Piece(E4, E8),
+                Move::Piece(E4, A4),
+                Move::Piece(E4, B4),
+                Move::Piece(E4, C4),
+                Move::Piece(E4, D4),
+                Move::Piece(E4, F4),
+                Move::Piece(E4, G4),
+                Move::Piece(E4, H4),
+            ]
+        );
     }
 
     #[test]
-    fn test_piece_get_rook_legal_moves() {
-        // TODO: impl
+    fn test_piece_get_queen_legal_moves_blocked() {
+        assert_eq!(
+            Piece::Queen(Color::White, D1).get_legal_moves(&Board::default()),
+            vec![]
+        );
+        assert_eq!(
+            Piece::Queen(Color::Black, D8).get_legal_moves(&Board::default()),
+            vec![]
+        );
     }
 
     #[test]
-    fn test_piece_get_bishop_legal_moves() {
-        // TODO: impl
+    fn test_piece_get_queen_legal_moves_piece_on_diagonal() {
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Queen(Color::White, D4))
+            .piece(Piece::Bishop(Color::Black, E3))
+            .piece(Piece::Bishop(Color::Black, E5))
+            .piece(Piece::Bishop(Color::Black, C3))
+            .piece(Piece::Bishop(Color::Black, C5))
+            .build();
+        assert_eq!(
+            Piece::Queen(Color::White, D4).get_legal_moves(&board),
+            vec![
+                Move::Piece(D4, C3),
+                Move::Piece(D4, E3),
+                Move::Piece(D4, C5),
+                Move::Piece(D4, E5),
+                Move::Piece(D4, D1),
+                Move::Piece(D4, D2),
+                Move::Piece(D4, D3),
+                Move::Piece(D4, D5),
+                Move::Piece(D4, D6),
+                Move::Piece(D4, D7),
+                Move::Piece(D4, D8),
+                Move::Piece(D4, A4),
+                Move::Piece(D4, B4),
+                Move::Piece(D4, C4),
+                Move::Piece(D4, E4),
+                Move::Piece(D4, F4),
+                Move::Piece(D4, G4),
+                Move::Piece(D4, H4),
+            ]
+        );
     }
 
     #[test]
-    fn test_piece_get_knight_legal_moves() {
-        // TODO: impl
+    fn test_piece_get_queen_legal_moves_piece_on_line() {
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Queen(Color::White, E4))
+            .piece(Piece::Rook(Color::Black, C4))
+            .piece(Piece::Rook(Color::Black, G4))
+            .build();
+        assert_eq!(
+            Piece::Queen(Color::White, E4).get_legal_moves(&board),
+            vec![
+                Move::Piece(E4, B1),
+                Move::Piece(E4, H1),
+                Move::Piece(E4, C2),
+                Move::Piece(E4, G2),
+                Move::Piece(E4, D3),
+                Move::Piece(E4, F3),
+                Move::Piece(E4, D5),
+                Move::Piece(E4, F5),
+                Move::Piece(E4, C6),
+                Move::Piece(E4, G6),
+                Move::Piece(E4, B7),
+                Move::Piece(E4, H7),
+                Move::Piece(E4, A8),
+                Move::Piece(E4, E1),
+                Move::Piece(E4, E2),
+                Move::Piece(E4, E3),
+                Move::Piece(E4, E5),
+                Move::Piece(E4, E6),
+                Move::Piece(E4, E7),
+                Move::Piece(E4, E8),
+                Move::Piece(E4, C4),
+                Move::Piece(E4, D4),
+                Move::Piece(E4, F4),
+                Move::Piece(E4, G4),
+            ]
+        );
     }
 
     #[test]
-    fn test_piece_is_legal_pawn_move() {
-        // TODO: impl
+    fn test_piece_get_queen_legal_moves_piece_on_column() {
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Queen(Color::White, E4))
+            .piece(Piece::Rook(Color::Black, E2))
+            .piece(Piece::Rook(Color::Black, E6))
+            .build();
+        assert_eq!(
+            Piece::Queen(Color::White, E4).get_legal_moves(&board),
+            vec![
+                Move::Piece(E4, B1),
+                Move::Piece(E4, H1),
+                Move::Piece(E4, C2),
+                Move::Piece(E4, G2),
+                Move::Piece(E4, D3),
+                Move::Piece(E4, F3),
+                Move::Piece(E4, D5),
+                Move::Piece(E4, F5),
+                Move::Piece(E4, C6),
+                Move::Piece(E4, G6),
+                Move::Piece(E4, B7),
+                Move::Piece(E4, H7),
+                Move::Piece(E4, A8),
+                Move::Piece(E4, E2),
+                Move::Piece(E4, E3),
+                Move::Piece(E4, E5),
+                Move::Piece(E4, E6),
+                Move::Piece(E4, A4),
+                Move::Piece(E4, B4),
+                Move::Piece(E4, C4),
+                Move::Piece(E4, D4),
+                Move::Piece(E4, F4),
+                Move::Piece(E4, G4),
+                Move::Piece(E4, H4),
+            ]
+        );
     }
 
     #[test]
-    fn test_piece_is_legal_queen_move() {
-        // TODO: impl
+    fn test_piece_get_queen_legal_moves_discovered_check() {
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Queen(Color::White, E4))
+            .piece(Piece::King(Color::White, E1))
+            .piece(Piece::Rook(Color::Black, E8))
+            .build();
+        assert_eq!(
+            Piece::Queen(Color::White, E4).get_legal_moves(&board),
+            vec![
+                Move::Piece(E4, E2),
+                Move::Piece(E4, E3),
+                Move::Piece(E4, E5),
+                Move::Piece(E4, E6),
+                Move::Piece(E4, E7),
+                Move::Piece(E4, E8),
+            ]
+        );
     }
 
     #[test]
-    fn test_piece_is_legal_rook_move() {
-        // TODO: impl
+    fn test_piece_get_rook_legal_moves_free() {
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Rook(Color::White, E4))
+            .build();
+        assert_eq!(
+            Piece::Rook(Color::White, E4).get_legal_moves(&board),
+            vec![
+                Move::Piece(E4, E1),
+                Move::Piece(E4, E2),
+                Move::Piece(E4, E3),
+                Move::Piece(E4, E5),
+                Move::Piece(E4, E6),
+                Move::Piece(E4, E7),
+                Move::Piece(E4, E8),
+                Move::Piece(E4, A4),
+                Move::Piece(E4, B4),
+                Move::Piece(E4, C4),
+                Move::Piece(E4, D4),
+                Move::Piece(E4, F4),
+                Move::Piece(E4, G4),
+                Move::Piece(E4, H4),
+            ]
+        );
     }
 
     #[test]
-    fn test_piece_is_legal_bishop_move() {
-        // TODO: impl
+    fn test_piece_get_rook_legal_moves_blocked() {
+        assert_eq!(
+            Piece::Rook(Color::White, A1).get_legal_moves(&Board::default()),
+            vec![]
+        );
+        assert_eq!(
+            Piece::Rook(Color::Black, H8).get_legal_moves(&Board::default()),
+            vec![]
+        );
     }
 
     #[test]
-    fn test_piece_is_legal_king_move() {
-        // TODO: impl
+    fn test_piece_get_rook_legal_moves_piece_on_col() {
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Rook(Color::White, E4))
+            .piece(Piece::Knight(Color::Black, E6))
+            .piece(Piece::Knight(Color::White, E1))
+            .build();
+        assert_eq!(
+            Piece::Rook(Color::White, E4).get_legal_moves(&board),
+            vec![
+                Move::Piece(E4, E2),
+                Move::Piece(E4, E3),
+                Move::Piece(E4, E5),
+                Move::Piece(E4, E6),
+                Move::Piece(E4, A4),
+                Move::Piece(E4, B4),
+                Move::Piece(E4, C4),
+                Move::Piece(E4, D4),
+                Move::Piece(E4, F4),
+                Move::Piece(E4, G4),
+                Move::Piece(E4, H4),
+            ]
+        );
     }
 
     #[test]
-    fn test_piece_is_legal_knight_move() {
-        // TODO: impl
+    fn test_piece_get_rook_legal_moves_piece_on_row() {
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Rook(Color::White, E4))
+            .piece(Piece::Queen(Color::Black, G4))
+            .piece(Piece::Queen(Color::White, B4))
+            .build();
+        assert_eq!(
+            Piece::Rook(Color::White, E4).get_legal_moves(&board),
+            vec![
+                Move::Piece(E4, E1),
+                Move::Piece(E4, E2),
+                Move::Piece(E4, E3),
+                Move::Piece(E4, E5),
+                Move::Piece(E4, E6),
+                Move::Piece(E4, E7),
+                Move::Piece(E4, E8),
+                Move::Piece(E4, C4),
+                Move::Piece(E4, D4),
+                Move::Piece(E4, F4),
+                Move::Piece(E4, G4),
+            ]
+        );
     }
 
     #[test]
-    fn test_piece_is_legal_pawn_attack() {
-        // TODO: impl
+    fn test_piece_get_rook_legal_moves_discovered_check() {
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Rook(Color::White, E4))
+            .piece(Piece::King(Color::White, E1))
+            .piece(Piece::Rook(Color::Black, E7))
+            .build();
+        assert_eq!(
+            Piece::Rook(Color::White, E4).get_legal_moves(&board),
+            vec![
+                Move::Piece(E4, E2),
+                Move::Piece(E4, E3),
+                Move::Piece(E4, E5),
+                Move::Piece(E4, E6),
+                Move::Piece(E4, E7),
+            ]
+        );
     }
 
     #[test]
-    fn test_piece_is_legal_queen_attack() {
-        // TODO: impl
+    fn test_piece_get_bishop_legal_moves_free() {
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Bishop(Color::White, E4))
+            .build();
+        assert_eq!(
+            Piece::Bishop(Color::White, E4).get_legal_moves(&board),
+            vec![
+                Move::Piece(E4, B1),
+                Move::Piece(E4, H1),
+                Move::Piece(E4, C2),
+                Move::Piece(E4, G2),
+                Move::Piece(E4, D3),
+                Move::Piece(E4, F3),
+                Move::Piece(E4, D5),
+                Move::Piece(E4, F5),
+                Move::Piece(E4, C6),
+                Move::Piece(E4, G6),
+                Move::Piece(E4, B7),
+                Move::Piece(E4, H7),
+                Move::Piece(E4, A8),
+            ]
+        );
+    }
+    #[test]
+    fn test_piece_get_bishop_legal_moves_blocked() {
+        assert_eq!(
+            Piece::Bishop(Color::White, C1).get_legal_moves(&Board::default()),
+            vec![]
+        );
+        assert_eq!(
+            Piece::Bishop(Color::Black, F8).get_legal_moves(&Board::default()),
+            vec![]
+        );
     }
 
     #[test]
-    fn test_piece_is_legal_rook_attack() {
-        // TODO: impl
+    fn test_piece_get_bishop_legal_moves_piece_on_diagonal() {
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Bishop(Color::White, E4))
+            .piece(Piece::Bishop(Color::Black, G6))
+            .piece(Piece::Pawn(Color::White, C2))
+            .build();
+        assert_eq!(
+            Piece::Bishop(Color::White, E4).get_legal_moves(&board),
+            vec![
+                Move::Piece(E4, H1),
+                Move::Piece(E4, G2),
+                Move::Piece(E4, D3),
+                Move::Piece(E4, F3),
+                Move::Piece(E4, D5),
+                Move::Piece(E4, F5),
+                Move::Piece(E4, C6),
+                Move::Piece(E4, G6),
+                Move::Piece(E4, B7),
+                Move::Piece(E4, A8),
+            ]
+        );
     }
 
     #[test]
-    fn test_piece_is_legal_bishop_attack() {
-        // TODO: impl
+    fn test_piece_get_bishop_legal_moves_discovered_check() {
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Bishop(Color::White, E4))
+            .piece(Piece::Bishop(Color::Black, G6))
+            .piece(Piece::King(Color::White, C2))
+            .build();
+        assert_eq!(
+            Piece::Bishop(Color::White, E4).get_legal_moves(&board),
+            vec![
+                Move::Piece(E4, D3),
+                Move::Piece(E4, F5),
+                Move::Piece(E4, G6),
+            ]
+        );
     }
 
     #[test]
-    fn test_piece_is_legal_king_attack() {
-        // TODO: impl
+    fn test_piece_get_knight_legal_moves_free() {
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Knight(Color::White, E4))
+            .build();
+        assert_eq!(
+            Piece::Knight(Color::White, E4).get_legal_moves(&board),
+            vec![
+                Move::Piece(E4, C5),
+                Move::Piece(E4, D6),
+                Move::Piece(E4, C3),
+                Move::Piece(E4, D2),
+                Move::Piece(E4, G5),
+                Move::Piece(E4, F6),
+                Move::Piece(E4, G3),
+                Move::Piece(E4, F2),
+            ]
+        );
     }
 
     #[test]
-    fn test_piece_is_legal_knight_attack() {
-        // TODO: impl
+    fn test_piece_get_knight_legal_moves_busy() {
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Knight(Color::White, E4))
+            .piece(Piece::Knight(Color::Black, C5))
+            .piece(Piece::Knight(Color::White, D6))
+            .build();
+        assert_eq!(
+            Piece::Knight(Color::White, E4).get_legal_moves(&board),
+            vec![
+                Move::Piece(E4, C5),
+                Move::Piece(E4, C3),
+                Move::Piece(E4, D2),
+                Move::Piece(E4, G5),
+                Move::Piece(E4, F6),
+                Move::Piece(E4, G3),
+                Move::Piece(E4, F2),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_piece_get_knight_legal_moves_discovered_check() {
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Knight(Color::White, E4))
+            .piece(Piece::King(Color::White, B1))
+            .piece(Piece::Bishop(Color::Black, H7))
+            .build();
+        assert_eq!(
+            Piece::Knight(Color::White, E4).get_legal_moves(&board),
+            vec![]
+        );
     }
 
     #[test]
