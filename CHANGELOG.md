@@ -12,4 +12,5 @@ Released on ??
 - Better function documentation
 - Bugfix: 🐛
   - Fixed a bug where you couldn't take both up left and up right pawns (e.g. white `e4`, black `d5` and `f5`; you could take only `d5`)
+  - Fixed a bug where you couldn't castle both on kingside and queenside at the same time
   - Fixed typo in move parser for `kingside castle` (See PR <https://github.com/adam-mcdaniel/chess-engine/pull/11>)

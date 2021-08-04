@@ -667,7 +667,7 @@ impl core::fmt::Display for Board {
                 let black_adv = self.get_material_advantage(BLACK);
 
                 match white_adv.cmp(&black_adv) {
-                    Ordering::Equal => write!(f, " Both sides have equal materal")?,
+                    Ordering::Equal => write!(f, " Both sides have equal material")?,
                     Ordering::Greater => write!(f, " White +{} points", white_adv)?,
                     Ordering::Less => write!(f, " Black +{} points", black_adv)?,
                 }
@@ -738,3 +738,16 @@ impl CastlingRights {
         self.enable_queenside()
     }
 }
+
+// CHECK: promotions?
+/*
+pub enum Promotion {
+    Queen,
+    Knight,
+    Bishop,
+    Rook,
+}
+
+pub fn promote(&self, pos: Position, promote: Promotion) -> GameResult;
+
+*/

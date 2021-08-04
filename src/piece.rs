@@ -533,9 +533,11 @@ impl Piece {
                 result.push(Move::Piece(pos, *p))
             }
         }
+        // Castling; don't  check with else if, you can sometimes do both moves
         if board.can_kingside_castle(ally_color) {
             result.push(Move::KingSideCastle);
-        } else if board.can_queenside_castle(ally_color) {
+        }
+        if board.can_queenside_castle(ally_color) {
             result.push(Move::QueenSideCastle);
         }
         result
@@ -936,7 +938,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_pawn_legal_moves() {
+    fn test_piece_get_pawn_legal_moves_starting_position() {
         // Starting pawn (white)
         assert_eq!(
             Piece::Pawn(Color::White, E2).get_legal_moves(&Board::default()),
@@ -947,6 +949,29 @@ mod test {
             Piece::Pawn(Color::Black, F7).get_legal_moves(&Board::default()),
             vec![Move::Piece(F7, F5), Move::Piece(F7, F6)]
         );
+    }
+
+    #[test]
+    fn test_piece_get_pawn_legal_moves_last_position() {
+        // Starting pawn (white)
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Pawn(Color::White, H8))
+            .piece(Piece::Pawn(Color::Black, A1))
+            .build();
+        assert_eq!(
+            Piece::Pawn(Color::White, H8).get_legal_moves(&board),
+            vec![]
+        );
+        // Starting pawn (black)
+        assert_eq!(
+            Piece::Pawn(Color::Black, A1).get_legal_moves(&board),
+            vec![]
+        );
+    }
+
+    #[test]
+    fn test_piece_get_pawn_legal_moves_already_moved() {
         // Not starting position pawn
         let board: Board = BoardBuilder::default()
             .enable_castling()
@@ -956,6 +981,10 @@ mod test {
             Piece::Pawn(Color::White, E3).get_legal_moves(&board),
             vec![Move::Piece(E3, E4)]
         );
+    }
+
+    #[test]
+    fn test_piece_get_pawn_legal_moves_can_take() {
         // Can take pawn (white)
         let board: Board = BoardBuilder::default()
             .enable_castling()
@@ -986,6 +1015,10 @@ mod test {
                 Move::Piece(E5, F4)
             ]
         );
+    }
+
+    #[test]
+    fn test_piece_get_pawn_legal_moves_opposite() {
         // Opposite pawn
         let board: Board = BoardBuilder::default()
             .enable_castling()
@@ -1000,6 +1033,10 @@ mod test {
             Piece::Pawn(Color::Black, E5).get_legal_moves(&board),
             vec![]
         );
+    }
+
+    #[test]
+    fn test_piece_get_pawn_legal_moves_en_passant() {
         // En passant - edge case 😈
         let mut board: Board = Board::default();
         if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(E2, E4)) {
@@ -1028,8 +1065,204 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_king_legal_moves() {
-        // TODO: impl
+    fn test_piece_get_king_legal_moves_starting_position() {
+        // King without free squares
+        assert_eq!(
+            Piece::King(Color::White, E1).get_legal_moves(&Board::default()),
+            vec![]
+        );
+        assert_eq!(
+            Piece::King(Color::Black, E8).get_legal_moves(&Board::default()),
+            vec![]
+        );
+    }
+
+    #[test]
+    fn test_piece_get_king_legal_moves_free_squares() {
+        // King in the middle of the board, no threatened
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::King(Color::White, E5))
+            .build();
+        assert_eq!(
+            Piece::King(Color::White, E5).get_legal_moves(&board),
+            vec![
+                Move::Piece(E5, D5),
+                Move::Piece(E5, F5),
+                Move::Piece(E5, E6),
+                Move::Piece(E5, E4),
+                Move::Piece(E5, D6),
+                Move::Piece(E5, D4),
+                Move::Piece(E5, F6),
+                Move::Piece(E5, F4),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_piece_get_king_legal_moves_rook_on_left() {
+        // King in the middle of the board, rook on the left
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::King(Color::White, E5))
+            .piece(Piece::Rook(Color::Black, D8))
+            .build();
+        assert_eq!(
+            Piece::King(Color::White, E5).get_legal_moves(&board),
+            vec![
+                Move::Piece(E5, F5),
+                Move::Piece(E5, E6),
+                Move::Piece(E5, E4),
+                Move::Piece(E5, F6),
+                Move::Piece(E5, F4),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_piece_get_king_legal_moves_rook_on_left_can_take() {
+        // King in the middle of the board, rook on the left, can take rook
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::King(Color::White, E5))
+            .piece(Piece::Rook(Color::Black, D5))
+            .build();
+        assert_eq!(
+            Piece::King(Color::White, E5).get_legal_moves(&board),
+            vec![
+                Move::Piece(E5, D5),
+                Move::Piece(E5, E6),
+                Move::Piece(E5, E4),
+                Move::Piece(E5, F6),
+                Move::Piece(E5, F4),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_piece_get_king_legal_moves_protected_rook_check() {
+        // King, checked by a protected rook on the left
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::King(Color::White, E5))
+            .piece(Piece::Rook(Color::Black, D5))
+            .piece(Piece::Pawn(Color::Black, C6))
+            .build();
+        assert_eq!(
+            Piece::King(Color::White, E5).get_legal_moves(&board),
+            vec![
+                Move::Piece(E5, E6),
+                Move::Piece(E5, E4),
+                Move::Piece(E5, F6),
+                Move::Piece(E5, F4),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_piece_get_king_legal_moves_castling() {
+        // Kingside Castling (giuoco piano)
+        let mut board: Board = Board::default();
+        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(E2, E4)) {
+            board = next_board;
+        }
+        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(E7, E5)) {
+            board = next_board;
+        }
+        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(G1, F3)) {
+            board = next_board;
+        }
+        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(B8, C6)) {
+            board = next_board;
+        }
+        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(F1, C4)) {
+            board = next_board;
+        }
+        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(F8, C5)) {
+            board = next_board;
+        }
+        assert_eq!(
+            Piece::King(Color::White, E1).get_legal_moves(&board),
+            vec![
+                Move::Piece(E1, F1),
+                Move::Piece(E1, E2),
+                Move::KingSideCastle, // Castle
+            ]
+        );
+        // Also black can castle now
+        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(C2, C3)) {
+            board = next_board;
+        }
+        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(G8, F6)) {
+            board = next_board;
+        }
+        assert_eq!(
+            Piece::King(Color::Black, E8).get_legal_moves(&board),
+            vec![
+                Move::Piece(E8, F8),
+                Move::Piece(E8, E7),
+                Move::KingSideCastle
+            ]
+        );
+        // Allow also queenside castling
+        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(D1, A4)) {
+            board = next_board;
+        }
+        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(D8, E7)) {
+            board = next_board;
+        }
+        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(B1, A3)) {
+            board = next_board;
+        }
+        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(B7, B5)) {
+            board = next_board;
+        }
+        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(D2, D4)) {
+            board = next_board;
+        }
+        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(C8, B7)) {
+            board = next_board;
+        }
+        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(C1, G5)) {
+            board = next_board;
+        }
+        assert_eq!(
+            Piece::King(Color::Black, E8).get_legal_moves(&board),
+            vec![
+                Move::Piece(E8, D8),
+                Move::Piece(E8, F8),
+                Move::KingSideCastle,
+                Move::QueenSideCastle
+            ]
+        );
+        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(E8, C8)) {
+            board = next_board;
+        }
+        assert_eq!(
+            Piece::King(Color::White, E1).get_legal_moves(&board),
+            vec![
+                Move::Piece(E1, D1),
+                Move::Piece(E1, F1),
+                Move::Piece(E1, E2),
+                Move::Piece(E1, D2),
+                Move::KingSideCastle,
+                Move::QueenSideCastle
+            ]
+        );
+    }
+
+    #[test]
+    fn test_piece_get_king_legal_moves_check_mate() {
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::King(Color::White, E1))
+            .piece(Piece::Queen(Color::Black, E2))
+            .piece(Piece::Rook(Color::Black, E8))
+            .build();
+        assert_eq!(
+            Piece::King(Color::White, E1).get_legal_moves(&board),
+            vec![]
+        );
     }
 
     #[test]
