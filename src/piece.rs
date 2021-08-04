@@ -158,21 +158,6 @@ const BLACK_PAWN_POSITION_WEIGHTS: [[f64; 8]; 8] = [
 ];
 
 impl Piece {
-    /// ### with_color
-    ///
-    /// Given a piece and a color, create a copy of the given piece, with the provided color
-    #[inline]
-    pub fn with_color(&self, color: Color) -> Self {
-        match *self {
-            Self::King(_, pos) => Self::King(color, pos),
-            Self::Queen(_, pos) => Self::Queen(color, pos),
-            Self::Rook(_, pos) => Self::Rook(color, pos),
-            Self::Bishop(_, pos) => Self::Bishop(color, pos),
-            Self::Knight(_, pos) => Self::Knight(color, pos),
-            Self::Pawn(_, pos) => Self::Pawn(color, pos),
-        }
-    }
-
     /// ### get_name
     ///
     /// Get the name of the piece such as `"pawn"` or `"king"`.
@@ -397,6 +382,21 @@ impl Piece {
         }
     }
 
+    /// ### with_color
+    ///
+    /// Given a piece and a color, create a copy of the given piece, with the provided color
+    #[inline]
+    pub fn with_color(&self, color: Color) -> Self {
+        match *self {
+            Self::King(_, pos) => Self::King(color, pos),
+            Self::Queen(_, pos) => Self::Queen(color, pos),
+            Self::Rook(_, pos) => Self::Rook(color, pos),
+            Self::Bishop(_, pos) => Self::Bishop(color, pos),
+            Self::Knight(_, pos) => Self::Knight(color, pos),
+            Self::Pawn(_, pos) => Self::Pawn(color, pos),
+        }
+    }
+
     /// ### get_legal_moves
     ///
     /// Get the exhaustive list of legal moves for a given piece.
@@ -503,9 +503,12 @@ impl Piece {
             result.push(Move::Piece(pos, up))
         }
 
+        // Check up_left NOTE: don't use else if, you can have both of them
         if up_left.is_on_board() && board.has_enemy_piece(up_left, ally_color) {
             result.push(Move::Piece(pos, up.next_left()))
-        } else if up_right.is_on_board() && board.has_enemy_piece(up.next_right(), ally_color) {
+        }
+        // Check up_right
+        if up_right.is_on_board() && board.has_enemy_piece(up.next_right(), ally_color) {
             result.push(Move::Piece(pos, up.next_right()))
         }
         result
@@ -542,37 +545,8 @@ impl Piece {
     ///
     /// Get all legal moves for provided queen
     fn get_queen_legal_moves(ally_color: Color, pos: Position, board: &Board) -> Vec<Move> {
-        let mut result: Vec<Move> = Vec::new();
-        for row in 0..8 {
-            let new_pos = Position::new(row, pos.get_col());
-            if new_pos != pos
-                && !board.has_ally_piece(new_pos, ally_color)
-                && new_pos.is_orthogonal_to(pos)
-            {
-                result.push(Move::Piece(pos, new_pos));
-            }
-        }
-        for col in 0..8 {
-            let new_pos = Position::new(pos.get_row(), col);
-            if new_pos != pos
-                && !board.has_ally_piece(new_pos, ally_color)
-                && new_pos.is_orthogonal_to(pos)
-            {
-                result.push(Move::Piece(pos, new_pos));
-            }
-        }
-
-        for row in 0..8 {
-            for col in 0..8 {
-                let new_pos = Position::new(row, col);
-                if new_pos != pos
-                    && !board.has_ally_piece(new_pos, ally_color)
-                    && new_pos.is_diagonal_to(pos)
-                {
-                    result.push(Move::Piece(pos, new_pos));
-                }
-            }
-        }
+        let mut result = Self::get_bishop_legal_moves(ally_color, pos, board);
+        result.extend(Self::get_rook_legal_moves(ally_color, pos, board));
         result
     }
 
@@ -788,7 +762,7 @@ impl core::fmt::Display for Piece {
             f,
             "{}",
             match self.get_color() {
-                Color::Black => match self {
+                Color::White => match self {
                     Self::King(_, _) => "♔",
                     Self::Queen(_, _) => "♕",
                     Self::Rook(_, _) => "♖",
@@ -796,7 +770,7 @@ impl core::fmt::Display for Piece {
                     Self::Bishop(_, _) => "♗",
                     Self::Pawn(_, _) => "♙",
                 },
-                Color::White => match self {
+                Color::Black => match self {
                     Self::King(_, _) => "♚",
                     Self::Queen(_, _) => "♛",
                     Self::Rook(_, _) => "♜",
@@ -813,93 +787,246 @@ impl core::fmt::Display for Piece {
 mod test {
 
     use super::*;
+    use crate::board::BoardBuilder;
+    use crate::position::*;
+    use crate::GameResult;
 
+    use alloc::string::ToString;
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn test_piece_with_color() {
-        // TODO: impl
-    }
-
-    #[test]
     fn test_piece_get_name() {
-        // TODO: impl
+        assert_eq!(Piece::Bishop(Color::White, A1).get_name(), "bishop");
+        assert_eq!(Piece::King(Color::White, A1).get_name(), "king");
+        assert_eq!(Piece::Knight(Color::White, A1).get_name(), "knight");
+        assert_eq!(Piece::Queen(Color::White, A1).get_name(), "queen");
+        assert_eq!(Piece::Pawn(Color::White, A1).get_name(), "pawn");
+        assert_eq!(Piece::Rook(Color::White, A1).get_name(), "rook");
     }
 
     #[test]
     fn test_piece_get_color() {
-        // TODO: impl
+        assert_eq!(Piece::Bishop(Color::White, A1).get_color(), Color::White);
+        assert_eq!(Piece::King(Color::Black, A1).get_color(), Color::Black);
+        assert_eq!(Piece::Knight(Color::White, A1).get_color(), Color::White);
+        assert_eq!(Piece::Queen(Color::Black, A1).get_color(), Color::Black);
+        assert_eq!(Piece::Pawn(Color::White, A1).get_color(), Color::White);
+        assert_eq!(Piece::Rook(Color::Black, A1).get_color(), Color::Black);
     }
 
     #[test]
     fn test_piece_get_pos() {
-        // TODO: impl
+        assert_eq!(Piece::Bishop(Color::White, D4).get_pos(), D4);
+        assert_eq!(Piece::King(Color::Black, D4).get_pos(), D4);
+        assert_eq!(Piece::Knight(Color::White, D4).get_pos(), D4);
+        assert_eq!(Piece::Queen(Color::Black, D4).get_pos(), D4);
+        assert_eq!(Piece::Pawn(Color::White, D4).get_pos(), D4);
+        assert_eq!(Piece::Rook(Color::Black, D4).get_pos(), D4);
     }
 
     #[test]
     fn test_piece_get_material_value() {
-        // TODO: impl
+        assert_eq!(Piece::Bishop(Color::White, D4).get_material_value(), 3);
+        assert_eq!(Piece::King(Color::Black, D4).get_material_value(), 99999);
+        assert_eq!(Piece::Knight(Color::White, D4).get_material_value(), 3);
+        assert_eq!(Piece::Queen(Color::Black, D4).get_material_value(), 9);
+        assert_eq!(Piece::Pawn(Color::White, D4).get_material_value(), 1);
+        assert_eq!(Piece::Rook(Color::Black, D4).get_material_value(), 5);
     }
 
     #[test]
     fn test_piece_get_weighted_value() {
-        // TODO: impl
+        assert_eq!(Piece::Bishop(Color::White, C2).get_weighted_value(), 30.0);
+        assert_eq!(Piece::Bishop(Color::Black, C2).get_weighted_value(), 30.0);
+        assert_eq!(Piece::King(Color::White, D4).get_weighted_value(), 999986.0);
+        assert_eq!(Piece::King(Color::Black, D4).get_weighted_value(), 999985.0);
+        assert_eq!(Piece::Knight(Color::White, E5).get_weighted_value(), 32.0);
+        assert_eq!(Piece::Knight(Color::Black, E5).get_weighted_value(), 32.0);
+        assert_eq!(Piece::Queen(Color::White, F6).get_weighted_value(), 90.5);
+        assert_eq!(Piece::Queen(Color::Black, F6).get_weighted_value(), 90.5);
+        assert_eq!(Piece::Pawn(Color::White, H4).get_weighted_value(), 10.0);
+        assert_eq!(Piece::Pawn(Color::Black, H4).get_weighted_value(), 10.5);
+        assert_eq!(Piece::Rook(Color::White, A2).get_weighted_value(), 49.5);
+        assert_eq!(Piece::Rook(Color::Black, A2).get_weighted_value(), 50.5);
     }
 
     #[test]
     fn test_piece_is_king() {
-        // TODO: impl
+        assert_eq!(Piece::King(Color::White, D4).is_king(), true);
+        assert_eq!(Piece::Bishop(Color::Black, C2).is_king(), false);
     }
 
     #[test]
     fn test_piece_is_queen() {
-        // TODO: impl
+        assert_eq!(Piece::Queen(Color::White, D4).is_queen(), true);
+        assert_eq!(Piece::Bishop(Color::Black, C2).is_queen(), false);
     }
 
     #[test]
     fn test_piece_is_rook() {
-        // TODO: impl
+        assert_eq!(Piece::Rook(Color::White, D4).is_rook(), true);
+        assert_eq!(Piece::Bishop(Color::Black, C2).is_rook(), false);
     }
 
     #[test]
     fn test_piece_is_bishop() {
-        // TODO: impl
+        assert_eq!(Piece::Bishop(Color::Black, C2).is_bishop(), true);
+        assert_eq!(Piece::Rook(Color::White, D4).is_bishop(), false);
     }
 
     #[test]
     fn test_piece_is_pawn() {
-        // TODO: impl
+        assert_eq!(Piece::Pawn(Color::Black, C2).is_pawn(), true);
+        assert_eq!(Piece::Rook(Color::White, D4).is_pawn(), false);
     }
 
     #[test]
     fn test_piece_is_knight() {
-        // TODO: impl
+        assert_eq!(Piece::Knight(Color::Black, C2).is_knight(), true);
+        assert_eq!(Piece::Rook(Color::White, D4).is_knight(), false);
     }
 
     #[test]
     fn test_piece_is_starting_pawn() {
-        // TODO: impl
+        // White pawns
+        assert_eq!(Piece::Pawn(Color::White, B2).is_starting_pawn(), true);
+        assert_eq!(Piece::Pawn(Color::White, C2).is_starting_pawn(), true);
+        assert_eq!(Piece::Pawn(Color::Black, B2).is_starting_pawn(), false);
+        assert_eq!(Piece::Pawn(Color::Black, C2).is_starting_pawn(), false);
+        // Black pawns
+        assert_eq!(Piece::Pawn(Color::Black, B7).is_starting_pawn(), true);
+        assert_eq!(Piece::Pawn(Color::Black, C7).is_starting_pawn(), true);
+        assert_eq!(Piece::Pawn(Color::White, B7).is_starting_pawn(), false);
+        assert_eq!(Piece::Pawn(Color::White, C7).is_starting_pawn(), false);
+        // others
+        assert_eq!(Piece::Queen(Color::White, C2).is_starting_pawn(), false);
+        assert_eq!(Piece::Bishop(Color::Black, C7).is_starting_pawn(), false);
     }
 
     #[test]
     fn test_piece_is_queenside_rook() {
-        // TODO: impl
+        assert_eq!(Piece::Rook(Color::White, A1).is_queenside_rook(), true);
+        assert_eq!(Piece::Rook(Color::Black, A8).is_queenside_rook(), true);
+        assert_eq!(Piece::Rook(Color::Black, A1).is_queenside_rook(), false);
+        assert_eq!(Piece::Rook(Color::White, A8).is_queenside_rook(), false);
     }
 
     #[test]
     fn test_piece_is_kingside_rook() {
-        // TODO: impl
+        assert_eq!(Piece::Rook(Color::White, H1).is_kingside_rook(), true);
+        assert_eq!(Piece::Rook(Color::Black, H8).is_kingside_rook(), true);
+        assert_eq!(Piece::Rook(Color::Black, H1).is_kingside_rook(), false);
+        assert_eq!(Piece::Rook(Color::White, H8).is_kingside_rook(), false);
     }
 
     #[test]
     fn test_piece_move_to() {
-        // TODO: impl
+        assert_eq!(
+            Piece::Rook(Color::White, H1).move_to(H8),
+            Piece::Rook(Color::White, H8)
+        );
+    }
+
+    #[test]
+    fn test_piece_with_color() {
+        assert_eq!(
+            Piece::Rook(Color::White, H1).with_color(Color::Black),
+            Piece::Rook(Color::Black, H1)
+        );
     }
 
     #[test]
     fn test_piece_get_pawn_legal_moves() {
-        // TODO: impl
+        // Starting pawn (white)
+        assert_eq!(
+            Piece::Pawn(Color::White, E2).get_legal_moves(&Board::default()),
+            vec![Move::Piece(E2, E4), Move::Piece(E2, E3)]
+        );
+        // Starting pawn (black)
+        assert_eq!(
+            Piece::Pawn(Color::Black, F7).get_legal_moves(&Board::default()),
+            vec![Move::Piece(F7, F5), Move::Piece(F7, F6)]
+        );
+        // Not starting position pawn
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Pawn(Color::White, E3))
+            .build();
+        assert_eq!(
+            Piece::Pawn(Color::White, E3).get_legal_moves(&board),
+            vec![Move::Piece(E3, E4)]
+        );
+        // Can take pawn (white)
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Pawn(Color::White, E4))
+            .piece(Piece::Pawn(Color::Black, D5))
+            .piece(Piece::Pawn(Color::Black, F5))
+            .build();
+        assert_eq!(
+            Piece::Pawn(Color::White, E4).get_legal_moves(&board),
+            vec![
+                Move::Piece(E4, E5),
+                Move::Piece(E4, D5),
+                Move::Piece(E4, F5)
+            ]
+        );
+        // Can take pawn (black)
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Pawn(Color::Black, E5))
+            .piece(Piece::Pawn(Color::White, D4))
+            .piece(Piece::Pawn(Color::White, F4))
+            .build();
+        assert_eq!(
+            Piece::Pawn(Color::Black, E5).get_legal_moves(&board),
+            vec![
+                Move::Piece(E5, E4),
+                Move::Piece(E5, D4),
+                Move::Piece(E5, F4)
+            ]
+        );
+        // Opposite pawn
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Pawn(Color::White, E4))
+            .piece(Piece::Pawn(Color::Black, E5))
+            .build();
+        assert_eq!(
+            Piece::Pawn(Color::White, E4).get_legal_moves(&board),
+            vec![]
+        );
+        assert_eq!(
+            Piece::Pawn(Color::Black, E5).get_legal_moves(&board),
+            vec![]
+        );
+        // En passant - edge case 😈
+        let mut board: Board = Board::default();
+        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(E2, E4)) {
+            // White pawn
+            board = next_board;
+        }
+        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(H7, H5)) {
+            // Black pawn
+            board = next_board;
+        }
+        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(E4, E5)) {
+            // White pawn
+            board = next_board;
+        }
+        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(F7, F5)) {
+            // Black pawn
+            board = next_board;
+        }
+        assert_eq!(
+            Piece::Pawn(Color::White, E5).get_legal_moves(&board),
+            vec![
+                Move::Piece(E5, F6), // En passant
+                Move::Piece(E5, E6),
+            ]
+        );
     }
+
     #[test]
     fn test_piece_get_king_legal_moves() {
         // TODO: impl
@@ -983,5 +1110,21 @@ mod test {
     #[test]
     fn test_piece_is_legal_knight_attack() {
         // TODO: impl
+    }
+
+    #[test]
+    fn test_piece_fmt() {
+        assert_eq!(Piece::Bishop(Color::White, A1).to_string(), "♗");
+        assert_eq!(Piece::Bishop(Color::Black, A1).to_string(), "♝");
+        assert_eq!(Piece::King(Color::White, A1).to_string(), "♔");
+        assert_eq!(Piece::King(Color::Black, A1).to_string(), "♚");
+        assert_eq!(Piece::Knight(Color::White, A1).to_string(), "♘");
+        assert_eq!(Piece::Knight(Color::Black, A1).to_string(), "♞");
+        assert_eq!(Piece::Queen(Color::White, A1).to_string(), "♕");
+        assert_eq!(Piece::Queen(Color::Black, A1).to_string(), "♛");
+        assert_eq!(Piece::Pawn(Color::White, A1).to_string(), "♙");
+        assert_eq!(Piece::Pawn(Color::Black, A1).to_string(), "♟");
+        assert_eq!(Piece::Rook(Color::White, A1).to_string(), "♖");
+        assert_eq!(Piece::Rook(Color::Black, A1).to_string(), "♜");
     }
 }
