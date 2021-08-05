@@ -8,7 +8,7 @@
   </p>
 </div>
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-teal.svg)](https://opensource.org/licenses/MIT) [![Downloads](https://img.shields.io/crates/d/harmon.svg)](https://crates.io/crates/harmon) [![Crates.io](https://img.shields.io/badge/crates.io-v0.1.2-orange.svg)](https://crates.io/crates/harmon) [![Docs](https://docs.rs/harmon/badge.svg)](https://docs.rs/harmon)  
+[![License: MIT](https://img.shields.io/badge/License-MIT-teal.svg)](https://opensource.org/licenses/MIT) [![Downloads](https://img.shields.io/crates/d/harmon.svg)](https://crates.io/crates/harmon) [![Crates.io](https://img.shields.io/badge/crates.io-v0.2.0-orange.svg)](https://crates.io/crates/harmon) [![Docs](https://docs.rs/harmon/badge.svg)](https://docs.rs/harmon)  
 
 [![Linux](https://github.com/veeso/harmon/workflows/Linux/badge.svg)](https://github.com/veeso/harmon/actions) [![MacOs](https://github.com/veeso/harmon/workflows/MacOS/badge.svg)](https://github.com/veeso/harmon/actions) [![Windows](https://github.com/veeso/harmon/workflows/Windows/badge.svg)](https://github.com/veeso/harmon/actions) [![Coverage Status](https://coveralls.io/repos/github/veeso/harmon/badge.svg)](https://coveralls.io/github/veeso/harmon)
 
