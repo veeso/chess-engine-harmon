@@ -1,13 +1,13 @@
 [package]
-name = "chess-engine-harmon"
+name = "harmon"
 version = "0.2.0"
-authors = ["Adam McDaniel <adam.mcdaniel17@gmail.com>", "Christian Visintin <christian dot visintin at gmail dot com>"]
+authors = ["Christian Visintin <christian dot visintin at gmail dot com>", "Adam McDaniel <adam.mcdaniel17@gmail.com>"]
 edition = "2018"
-description = "Harmon variation of the chess-engine crate."
-documentation = "https://docs.rs/chess-engine-harmon/"
+description = "A dependency-free chess engine library."
+documentation = "https://docs.rs/harmon/"
 readme = "README.md"
-homepage = "https://github.com/veeso/chess-engine-harmon"
-repository = "https://github.com/veeso/chess-engine-harmon"
+homepage = "https://github.com/veeso/harmon"
+repository = "https://github.com/veeso/harmon"
 license = "MIT"
 keywords = ["chess", "engine", "game", "board", "ai"]
 categories = [

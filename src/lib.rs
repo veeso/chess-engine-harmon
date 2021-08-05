@@ -1,18 +1,22 @@
-//! # chess-engine-harmon
+//! # harmon
 //!
-//! [chess-engine-harmon](https://github.com/veeso/chess-engine-harmon) is a fork of the original [chess engine](https://github.com/adam-mcdaniel/chess-engine) library for rust.
-//! It has been designed to provide some extra functionalities compared to the original library and to fit with the tui game [Harmon](https://github.com/veeso/harmon).
+//! [harmon](https://github.com/veeso/harmon) is a dependency-free chess engine library written in rust.
+//! It is a fork of the original [chess engine](https://github.com/adam-mcdaniel/chess-engine) library for rust written by Adam McDaniel.
+//!
+//! Harmon comes with these features:
+//!
+//! TODO: define features
+//!
 //! In addition to this, I've also made some bugfix and added test units in order to make the library safer and more reliable.
-//! Feel free to use this library instead of the original one if you prefer.
 //!
-//! ![chess-image](https://raw.githubusercontent.com/veeso/chess-engine-harmon/main/assets/web-board.png)
+//! ![chess-image](https://raw.githubusercontent.com/veeso/harmon/main/assets/web-board.png)
 //!
 //! ## Get Started
 //!
-//! ### Adding `chess-engine-harmon` as dependency
+//! ### Adding `harmon` as dependency
 //!
 //! ```toml
-//! chess-engine-harmon = "0.1.2"
+//! harmon = "0.2.0"
 //! ```
 //!
 //! ## Example
@@ -21,9 +25,9 @@
 //! on how to make the computer to make a move.
 //!
 //! ```rust,no_run
-//! extern crate chess_engine_harmon;
+//! extern crate harmon;
 //!
-//! use chess_engine_harmon::{Board, Evaluate, GameResult, Move};
+//! use harmon::{Board, Evaluate, GameResult, Move};
 //!
 //! fn main() {
 //!     let board = Board::default();
@@ -71,9 +75,9 @@
 //!
 //! Chess-engine also supports other game modes, such as Horde:
 //! ```rust,no_run
-//! extern crate chess_engine_harmon;
+//! extern crate harmon;
 //!
-//! use chess_engine_harmon::{Board, Evaluate, GameResult, Move};
+//! use harmon::{Board, Evaluate, GameResult, Move};
 //!
 //! // TODO: complete with other variants
 //!
@@ -85,10 +89,10 @@
 
 #![doc(html_playground_url = "https://play.rust-lang.org")]
 #![doc(
-    html_favicon_url = "https://raw.githubusercontent.com/veeso/chess-engine-harmon/main/assets/cargo/chess-engine-harmon-128.png"
+    html_favicon_url = "https://raw.githubusercontent.com/veeso/harmon/main/assets/cargo/harmon-128.png"
 )]
 #![doc(
-    html_logo_url = "https://raw.githubusercontent.com/veeso/chess-engine-harmon/main/assets/cargo/chess-engine-harmon-512.png"
+    html_logo_url = "https://raw.githubusercontent.com/veeso/harmon/main/assets/cargo/harmon-512.png"
 )]
 #![no_std]
 #[macro_use]

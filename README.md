@@ -1,22 +1,20 @@
-# ♔ chess-engine-harmon ♚
+# ♕ harmon ♛
 
 <div align="center">
-  <img src="/assets/chess-engine-harmon.svg" width="256" height="256" />
+  <img src="/assets/harmon.svg" width="256" height="256" />
 
   <p>
-    <strong>A dependency-free chess engine library built to run anywhere.</strong>
+    <strong>A dependency-free chess engine library written in Rust.</strong>
   </p>
 </div>
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-teal.svg)](https://opensource.org/licenses/MIT) [![Downloads](https://img.shields.io/crates/d/chess-engine-harmon.svg)](https://crates.io/crates/chess-engine-harmon) [![Crates.io](https://img.shields.io/badge/crates.io-v0.1.2-orange.svg)](https://crates.io/crates/chess-engine-harmon) [![Docs](https://docs.rs/chess-engine-harmon/badge.svg)](https://docs.rs/chess-engine-harmon)  
+[![License: MIT](https://img.shields.io/badge/License-MIT-teal.svg)](https://opensource.org/licenses/MIT) [![Downloads](https://img.shields.io/crates/d/harmon.svg)](https://crates.io/crates/harmon) [![Crates.io](https://img.shields.io/badge/crates.io-v0.1.2-orange.svg)](https://crates.io/crates/harmon) [![Docs](https://docs.rs/harmon/badge.svg)](https://docs.rs/harmon)  
 
-[![Linux](https://github.com/veeso/chess-engine-harmon/workflows/Linux/badge.svg)](https://github.com/veeso/chess-engine-harmon/actions) [![MacOs](https://github.com/veeso/chess-engine-harmon/workflows/MacOS/badge.svg)](https://github.com/veeso/chess-engine-harmon/actions) [![Windows](https://github.com/veeso/chess-engine-harmon/workflows/Windows/badge.svg)](https://github.com/veeso/chess-engine-harmon/actions) [![Coverage Status](https://coveralls.io/repos/github/veeso/chess-engine-harmon/badge.svg)](https://coveralls.io/github/veeso/chess-engine-harmon)
+[![Linux](https://github.com/veeso/harmon/workflows/Linux/badge.svg)](https://github.com/veeso/harmon/actions) [![MacOs](https://github.com/veeso/harmon/workflows/MacOS/badge.svg)](https://github.com/veeso/harmon/actions) [![Windows](https://github.com/veeso/harmon/workflows/Windows/badge.svg)](https://github.com/veeso/harmon/actions) [![Coverage Status](https://coveralls.io/repos/github/veeso/harmon/badge.svg)](https://coveralls.io/github/veeso/harmon)
 
-## Harmon variation
+## About harmon
 
-This is the variation used by [Harmon](https://github.com/veeso/harmon).  
-It has some additional feature to the original chess-engine, including different patches.  
-To view changes give a look to [CHANGELOG](CHANGELOG.md)
+complete
 
 ---
 
@@ -32,7 +30,7 @@ To view changes give a look to [CHANGELOG](CHANGELOG.md)
   </h3>
 
   <p>
-    Adam McDaniel is a freshman in college, mainly working on side projects like these in the ~30 minute breaks between classes. If you enjoy his projects, consider supporting him by buying him a coffee!
+    Adam McDaniel has actually started the project as <a href="https://github.com/adam-mcdaniel/chess-engine">chess-engine</a>, which this library is based on. Feel free to use its library if you prefer and to support his work.
   </p>
 
   <a href="https://www.buymeacoffee.com/adam.mcdaniel" target="_blank">
@@ -60,6 +58,6 @@ To view changes give a look to [CHANGELOG](CHANGELOG.md)
 
 ## License 📃
 
-harmon-chess-engine is licensed under the MIT license.
+harmon is licensed under the MIT license.
 
 You can read the entire license [HERE](LICENSE)
