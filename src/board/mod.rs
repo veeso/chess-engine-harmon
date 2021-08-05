@@ -70,6 +70,8 @@ impl Default for Board {
 }
 
 impl Board {
+    /// ### horde
+    ///
     /// Create the default board for the Horde variant
     pub fn horde() -> Self {
         BoardBuilder::from(Board::default())
@@ -84,6 +86,9 @@ impl Board {
             .build()
     }
 
+    /// ### empty
+    ///
+    /// Create an empty Board
     pub fn empty() -> Self {
         Self {
             squares: [Square::empty(); 64],
@@ -96,6 +101,382 @@ impl Board {
         }
     }
 
+    /// ### get_turn_color
+    ///
+    /// Get the color of the current player
+    #[inline]
+    pub fn get_turn_color(&self) -> Color {
+        self.turn
+    }
+
+    /// ### get_en_passant
+    ///
+    /// Get the position of the En-Passant square
+    pub fn get_en_passant(&self) -> Option<Position> {
+        self.en_passant
+    }
+
+    /// ### remove_all
+    ///
+    /// Remove all of the pieces for a given player
+    pub fn remove_all(&self, color: Color) -> Self {
+        let mut result = *self;
+        for square in &mut result.squares {
+            if let Some(piece) = square.get_piece() {
+                if piece.get_color() == color {
+                    *square = Square::empty()
+                }
+            }
+        }
+
+        result
+    }
+
+    /// ### queen_all
+    ///
+    /// Convert all of a given players pieces to queens
+    pub fn queen_all(&self, color: Color) -> Self {
+        let mut result = *self;
+        for square in &mut result.squares {
+            if let Some(piece) = square.get_piece() {
+                if !piece.is_king() && piece.get_color() == color {
+                    *square = Square::from(Piece::Queen(color, piece.get_pos()))
+                }
+            }
+        }
+
+        result
+    }
+
+    /// ### set_turn
+    ///
+    /// Make the game a certain player's turn
+    #[inline]
+    pub fn set_turn(&self, color: Color) -> Self {
+        let mut result = *self;
+        result.turn = color;
+        result
+    }
+
+    /// ### get_material_advantage
+    ///
+    /// Get the value of the material advantage of a certain player
+    #[inline]
+    pub fn get_material_advantage(&self, color: Color) -> i32 {
+        self.squares
+            .iter()
+            .map(|square| match square.get_piece() {
+                Some(piece) => {
+                    if piece.get_color() == color {
+                        piece.get_material_value()
+                    } else {
+                        -piece.get_material_value()
+                    }
+                }
+                None => 0,
+            })
+            .sum()
+    }
+
+    /// ### get_piece
+    ///
+    /// Returns the piece at `pos` position
+    #[inline]
+    pub fn get_piece(&self, pos: Position) -> Option<Piece> {
+        if pos.is_off_board() {
+            return None;
+        }
+        self.squares[((7 - pos.get_row()) * 8 + pos.get_col()) as usize].get_piece()
+    }
+
+    /// ### has_ally_piece
+    ///
+    /// Does a square have an ally piece?
+    #[inline]
+    pub fn has_ally_piece(&self, pos: Position, ally_color: Color) -> bool {
+        if let Some(piece) = self.get_piece(pos) {
+            piece.get_color() == ally_color
+        } else {
+            false
+        }
+    }
+
+    /// ### has_enemy_piece
+    ///
+    /// If a square at a given position has an enemy piece from a given
+    /// ally color, return true. Otherwise, return false.
+    ///
+    /// For example, if a square has a black piece, and this method is called
+    /// upon it with an `ally_color` of `Color::White`, then it will return true.
+    /// If called with `Color::Black` upon the same square, however, it will return false.
+    #[inline]
+    pub fn has_enemy_piece(&self, pos: Position, ally_color: Color) -> bool {
+        if let Some(piece) = self.get_piece(pos) {
+            piece.get_color() == !ally_color
+        } else {
+            false
+        }
+    }
+
+    /// ### has_piece
+    ///
+    /// If a square at a given position has any piece, return true.
+    /// Otherwise, return false.
+    #[inline]
+    pub fn has_piece(&self, pos: Position) -> bool {
+        self.get_piece(pos) != None
+    }
+
+    /// ### has_no_piece
+    ///
+    /// If a square at a given position has no piece, return true.
+    /// Otherwise, return false.
+    #[inline]
+    pub fn has_no_piece(&self, pos: Position) -> bool {
+        self.get_piece(pos) == None
+    }
+
+    /// ### get_king_pos
+    ///
+    /// If there is a king on the board, return the position that it sits on.
+    pub fn get_king_pos(&self, color: Color) -> Option<Position> {
+        let mut king_pos = None;
+        for square in &self.squares {
+            if let Some(Piece::King(c, pos)) = square.get_piece() {
+                if c == color {
+                    king_pos = Some(pos);
+                }
+            }
+        }
+        king_pos
+    }
+
+    /// ### is_threatened
+    ///
+    /// Is a square threatened by an enemy piece?
+    pub fn is_threatened(&self, pos: Position, ally_color: Color) -> bool {
+        for (i, square) in self.squares.iter().enumerate() {
+            let row = 7 - i / 8;
+            let col = i % 8;
+            let square_pos = Position::new(row as i32, col as i32);
+            if !square_pos.is_orthogonal_to(pos)
+                && !square_pos.is_diagonal_to(pos)
+                && !square_pos.is_knight_move(pos)
+            {
+                continue;
+            }
+
+            if let Some(piece) = square.get_piece() {
+                if piece.get_color() == ally_color {
+                    continue;
+                }
+
+                if piece.is_legal_attack(pos, self) {
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
+
+    /// ### is_in_check
+    ///
+    /// Get whether or not the king of a given color is in check.
+    #[inline]
+    pub fn is_in_check(&self, color: Color) -> bool {
+        if let Some(king_pos) = self.get_king_pos(color) {
+            self.is_threatened(king_pos, color)
+        } else {
+            false
+        }
+    }
+
+    /// ### can_kingside_castle
+    ///
+    /// Can a given player castle kingside?
+    pub fn can_kingside_castle(&self, color: Color) -> bool {
+        let right_of_king = Position::king_pos(color).next_right();
+        match color {
+            WHITE => {
+                self.has_no_piece(Position::new(0, 5))
+                    && self.has_no_piece(Position::new(0, 6))
+                    && self.get_piece(Position::new(0, 7))
+                        == Some(Piece::Rook(color, Position::new(0, 7)))
+                    && self.white_castling_rights.can_kingside_castle()
+                    && !self.is_in_check(color)
+                    && !self.is_threatened(right_of_king, color)
+                    && !self.is_threatened(right_of_king.next_right(), color)
+            }
+            BLACK => {
+                self.has_no_piece(Position::new(7, 5))
+                    && self.has_no_piece(Position::new(7, 6))
+                    && self.get_piece(Position::new(7, 7))
+                        == Some(Piece::Rook(color, Position::new(7, 7)))
+                    && self.black_castling_rights.can_kingside_castle()
+                    && !self.is_in_check(color)
+                    && !self.is_threatened(right_of_king, color)
+                    && !self.is_threatened(right_of_king.next_right(), color)
+            }
+        }
+    }
+
+    /// ### can_queenside_castle
+    ///
+    /// Can a given player castle queenside?
+    pub fn can_queenside_castle(&self, color: Color) -> bool {
+        match color {
+            WHITE => {
+                self.has_no_piece(Position::new(0, 1))
+                    && self.has_no_piece(Position::new(0, 2))
+                    && self.has_no_piece(Position::new(0, 3))
+                    && self.get_piece(Position::new(0, 0))
+                        == Some(Piece::Rook(color, Position::new(0, 0)))
+                    && self.white_castling_rights.can_queenside_castle()
+                    && !self.is_in_check(color)
+                    && !self.is_threatened(Position::queen_pos(color), color)
+            }
+            BLACK => {
+                self.has_no_piece(Position::new(7, 1))
+                    && self.has_no_piece(Position::new(7, 2))
+                    && self.has_no_piece(Position::new(7, 3))
+                    && self.get_piece(Position::new(7, 0))
+                        == Some(Piece::Rook(color, Position::new(7, 0)))
+                    && self.black_castling_rights.can_queenside_castle()
+                    && !self.is_in_check(color)
+                    && !self.is_threatened(Position::queen_pos(color), color)
+            }
+        }
+    }
+
+    /// ### is_legal_move
+    ///
+    /// Returns whether provided move is a legal move for player
+    pub(crate) fn is_legal_move(&self, m: Move, player_color: Color) -> bool {
+        match m {
+            Move::KingSideCastle => self.can_kingside_castle(player_color),
+            Move::QueenSideCastle => self.can_queenside_castle(player_color),
+            Move::Piece(from, to) => match self.get_piece(from) {
+                Some(Piece::Pawn(c, pos)) => {
+                    let piece = Piece::Pawn(c, pos);
+                    ((if let Some(en_passant) = self.en_passant {
+                        (en_passant == from.pawn_up(player_color).next_left()
+                            || en_passant == from.pawn_up(player_color).next_right()
+                                && en_passant == to)
+                            && c == player_color
+                    } else {
+                        false
+                    }) || piece.is_legal_move(to, self) && piece.get_color() == player_color)
+                        && !self.apply_move(m).is_in_check(player_color)
+                }
+                Some(piece) => {
+                    piece.is_legal_move(to, self)
+                        && piece.get_color() == player_color
+                        && !self.apply_move(m).is_in_check(player_color)
+                }
+                _ => false,
+            },
+            Move::Resign => true,
+        }
+    }
+    /// ### has_sufficient_material
+    ///
+    /// Does the respective player have sufficient material?
+    pub fn has_sufficient_material(&self, color: Color) -> bool {
+        let mut pieces = vec![];
+        for square in &self.squares {
+            if let Some(piece) = square.get_piece() {
+                if piece.get_color() == color {
+                    pieces.push(piece);
+                }
+            }
+        }
+
+        pieces.sort();
+
+        if pieces.len() == 0 {
+            false
+        } else if pieces.len() == 1 && pieces[0].is_king() {
+            false
+        } else if pieces.len() == 2 && pieces[0].is_king() && pieces[1].is_knight() {
+            false
+        } else if pieces.len() == 2 && pieces[0].is_king() && pieces[1].is_bishop() {
+            false
+        } else if pieces.len() == 3
+            && pieces[0].is_king()
+            && pieces[1].is_knight()
+            && pieces[2].is_knight()
+        {
+            false
+        } else if pieces.len() == 3
+            && pieces[0].is_king()
+            && pieces[1].is_bishop()
+            && pieces[2].is_bishop()
+        {
+            false
+        } else {
+            true
+        }
+    }
+
+    /// ### has_insufficient_material
+    ///
+    /// Does the respective player have insufficient material?
+    #[inline]
+    pub fn has_insufficient_material(&self, color: Color) -> bool {
+        !self.has_sufficient_material(color)
+    }
+
+    /// ### is_stalemate
+    ///
+    /// Is the current player in stalemate?
+    pub fn is_stalemate(&self) -> bool {
+        (self.get_legal_moves().is_empty() && !self.is_in_check(self.get_current_player_color()))
+            || (self.has_insufficient_material(self.turn)
+                && self.has_insufficient_material(!self.turn))
+    }
+
+    /// ### is_checkmate
+    ///
+    /// Is the current player in checkmate?
+    pub fn is_checkmate(&self) -> bool {
+        self.is_in_check(self.get_current_player_color()) && self.get_legal_moves().is_empty()
+    }
+
+    /// ### change_turn
+    ///
+    /// Change the current turn to the next player.
+    #[inline]
+    pub fn change_turn(mut self) -> Self {
+        self.turn = !self.turn;
+        self
+    }
+
+    /// ### play_move
+    ///
+    /// Play a move and confirm it is legal.
+    pub fn play_move(&self, m: Move) -> GameResult {
+        let current_color = self.get_turn_color();
+
+        if m == Move::Resign {
+            GameResult::Victory(!current_color)
+        } else if self.is_legal_move(m, current_color) {
+            let next_turn = self.apply_move(m).change_turn();
+            if next_turn.is_checkmate() {
+                GameResult::Victory(current_color)
+            } else if next_turn.is_stalemate() {
+                GameResult::Stalemate
+            } else {
+                GameResult::Continuing(next_turn)
+            }
+        } else {
+            GameResult::IllegalMove(m)
+        }
+    }
+
+    /// ### rating_bar
+    ///
+    /// print rating bar
     pub fn rating_bar(&self, len: usize) -> String {
         let (best_m, _, your_best_val) = self.get_best_next_move(2);
         let (_, _, your_lowest_val) = self.get_worst_next_move(2);
@@ -135,180 +516,29 @@ impl Board {
         white + &black
     }
 
-    /// Get the color of the current player
-    #[inline]
-    pub fn get_turn_color(&self) -> Color {
-        self.turn
-    }
+    // -- private
 
-    /// Get the position of the En-Passant square
-    pub fn get_en_passant(&self) -> Option<Position> {
-        self.en_passant
-    }
-
-    /// Remove all of the pieces for a given player
-    pub fn remove_all(&self, color: Color) -> Self {
-        let mut result = *self;
-        for square in &mut result.squares {
-            if let Some(piece) = square.get_piece() {
-                if piece.get_color() == color {
-                    *square = Square::empty()
-                }
-            }
-        }
-
-        result
-    }
-
-    /// Convert all of a given players pieces to queens
-    pub fn queen_all(&self, color: Color) -> Self {
-        let mut result = *self;
-        for square in &mut result.squares {
-            if let Some(piece) = square.get_piece() {
-                if !piece.is_king() && piece.get_color() == color {
-                    *square = Square::from(Piece::Queen(color, piece.get_pos()))
-                }
-            }
-        }
-
-        result
-    }
-
-    /// Make the game a certain player's turn
-    #[inline]
-    pub fn set_turn(&self, color: Color) -> Self {
-        let mut result = *self;
-        result.turn = color;
-        result
-    }
-
-    /// Get the value of the material advantage of a certain player
-    #[inline]
-    pub fn get_material_advantage(&self, color: Color) -> i32 {
-        self.squares
-            .iter()
-            .map(|square| match square.get_piece() {
-                Some(piece) => {
-                    if piece.get_color() == color {
-                        piece.get_material_value()
-                    } else {
-                        -piece.get_material_value()
-                    }
-                }
-                None => 0,
-            })
-            .sum()
-    }
-
+    /// ### get_square
+    ///
+    /// Get a mutable reference to the square with the provided position.
+    /// Panics if position is off_board
     #[inline]
     fn get_square(&mut self, pos: Position) -> &mut Square {
         &mut self.squares[((7 - pos.get_row()) * 8 + pos.get_col()) as usize]
     }
 
+    /// ### add_piece
+    ///
+    /// Add piece to board
     #[inline]
     fn add_piece(&mut self, piece: Piece) {
         let pos = piece.get_pos();
         *self.get_square(pos) = Square::from(piece);
     }
 
-    /// Does a square have any piece?
-    #[inline]
-    pub fn get_piece(&self, pos: Position) -> Option<Piece> {
-        if pos.is_off_board() {
-            return None;
-        }
-        self.squares[((7 - pos.get_row()) * 8 + pos.get_col()) as usize].get_piece()
-    }
-
-    /// Does a square have an ally piece?
-    #[inline]
-    pub fn has_ally_piece(&self, pos: Position, ally_color: Color) -> bool {
-        if let Some(piece) = self.get_piece(pos) {
-            piece.get_color() == ally_color
-        } else {
-            false
-        }
-    }
-
-    /// If a square at a given position has an enemy piece from a given
-    /// ally color, return true. Otherwise, return false.
+    /// ### move_piece
     ///
-    /// For example, if a square has a black piece, and this method is called
-    /// upon it with an `ally_color` of `Color::White`, then it will return true.
-    /// If called with `Color::Black` upon the same square, however, it will return false.
-    #[inline]
-    pub fn has_enemy_piece(&self, pos: Position, ally_color: Color) -> bool {
-        if let Some(piece) = self.get_piece(pos) {
-            piece.get_color() == !ally_color
-        } else {
-            false
-        }
-    }
-
-    /// If a square at a given position has any piece, return true.
-    /// Otherwise, return false.
-    #[inline]
-    pub fn has_piece(&self, pos: Position) -> bool {
-        self.get_piece(pos) != None
-    }
-
-    /// If a square at a given position has no piece, return true.
-    /// Otherwise, return false.
-    #[inline]
-    pub fn has_no_piece(&self, pos: Position) -> bool {
-        self.get_piece(pos) == None
-    }
-
-    /// If there is a king on the board, return the position that it sits on.
-    pub fn get_king_pos(&self, color: Color) -> Option<Position> {
-        let mut king_pos = None;
-        for square in &self.squares {
-            if let Some(Piece::King(c, pos)) = square.get_piece() {
-                if c == color {
-                    king_pos = Some(pos);
-                }
-            }
-        }
-        king_pos
-    }
-
-    /// Is a square threatened by an enemy piece?
-    pub fn is_threatened(&self, pos: Position, ally_color: Color) -> bool {
-        for (i, square) in self.squares.iter().enumerate() {
-            let row = 7 - i / 8;
-            let col = i % 8;
-            let square_pos = Position::new(row as i32, col as i32);
-            if !square_pos.is_orthogonal_to(pos)
-                && !square_pos.is_diagonal_to(pos)
-                && !square_pos.is_knight_move(pos)
-            {
-                continue;
-            }
-
-            if let Some(piece) = square.get_piece() {
-                if piece.get_color() == ally_color {
-                    continue;
-                }
-
-                if piece.is_legal_attack(pos, self) {
-                    return true;
-                }
-            }
-        }
-
-        false
-    }
-
-    /// Get whether or not the king of a given color is in check.
-    #[inline]
-    pub fn is_in_check(&self, color: Color) -> bool {
-        if let Some(king_pos) = self.get_king_pos(color) {
-            self.is_threatened(king_pos, color)
-        } else {
-            false
-        }
-    }
-
+    /// Move piece from `from` position to `to` position
     fn move_piece(&self, from: Position, to: Position) -> Self {
         let mut result = *self;
         result.en_passant = None;
@@ -348,149 +578,10 @@ impl Board {
         result
     }
 
-    /// Can a given player castle kingside?
-    pub fn can_kingside_castle(&self, color: Color) -> bool {
-        let right_of_king = Position::king_pos(color).next_right();
-        match color {
-            WHITE => {
-                self.has_no_piece(Position::new(0, 5))
-                    && self.has_no_piece(Position::new(0, 6))
-                    && self.get_piece(Position::new(0, 7))
-                        == Some(Piece::Rook(color, Position::new(0, 7)))
-                    && self.white_castling_rights.can_kingside_castle()
-                    && !self.is_in_check(color)
-                    && !self.is_threatened(right_of_king, color)
-                    && !self.is_threatened(right_of_king.next_right(), color)
-            }
-            BLACK => {
-                self.has_no_piece(Position::new(7, 5))
-                    && self.has_no_piece(Position::new(7, 6))
-                    && self.get_piece(Position::new(7, 7))
-                        == Some(Piece::Rook(color, Position::new(7, 7)))
-                    && self.black_castling_rights.can_kingside_castle()
-                    && !self.is_in_check(color)
-                    && !self.is_threatened(right_of_king, color)
-                    && !self.is_threatened(right_of_king.next_right(), color)
-            }
-        }
-    }
-
-    /// Can a given player castle queenside?
-    pub fn can_queenside_castle(&self, color: Color) -> bool {
-        match color {
-            WHITE => {
-                self.has_no_piece(Position::new(0, 1))
-                    && self.has_no_piece(Position::new(0, 2))
-                    && self.has_no_piece(Position::new(0, 3))
-                    && self.get_piece(Position::new(0, 0))
-                        == Some(Piece::Rook(color, Position::new(0, 0)))
-                    && self.white_castling_rights.can_queenside_castle()
-                    && !self.is_in_check(color)
-                    && !self.is_threatened(Position::queen_pos(color), color)
-            }
-            BLACK => {
-                self.has_no_piece(Position::new(7, 1))
-                    && self.has_no_piece(Position::new(7, 2))
-                    && self.has_no_piece(Position::new(7, 3))
-                    && self.get_piece(Position::new(7, 0))
-                        == Some(Piece::Rook(color, Position::new(7, 0)))
-                    && self.black_castling_rights.can_queenside_castle()
-                    && !self.is_in_check(color)
-                    && !self.is_threatened(Position::queen_pos(color), color)
-            }
-        }
-    }
-
-    pub(crate) fn is_legal_move(&self, m: Move, player_color: Color) -> bool {
-        match m {
-            Move::KingSideCastle => self.can_kingside_castle(player_color),
-            Move::QueenSideCastle => self.can_queenside_castle(player_color),
-            Move::Piece(from, to) => match self.get_piece(from) {
-                Some(Piece::Pawn(c, pos)) => {
-                    let piece = Piece::Pawn(c, pos);
-                    ((if let Some(en_passant) = self.en_passant {
-                        (en_passant == from.pawn_up(player_color).next_left()
-                            || en_passant == from.pawn_up(player_color).next_right()
-                                && en_passant == to)
-                            && c == player_color
-                    } else {
-                        false
-                    }) || piece.is_legal_move(to, self) && piece.get_color() == player_color)
-                        && !self.apply_move(m).is_in_check(player_color)
-                }
-                Some(piece) => {
-                    piece.is_legal_move(to, self)
-                        && piece.get_color() == player_color
-                        && !self.apply_move(m).is_in_check(player_color)
-                }
-                _ => false,
-            },
-            Move::Resign => true,
-        }
-    }
-    /// Does the respective player have sufficient material?
-    pub fn has_sufficient_material(&self, color: Color) -> bool {
-        let mut pieces = vec![];
-        for square in &self.squares {
-            if let Some(piece) = square.get_piece() {
-                if piece.get_color() == color {
-                    pieces.push(piece);
-                }
-            }
-        }
-
-        pieces.sort();
-
-        if pieces.len() == 0 {
-            false
-        } else if pieces.len() == 1 && pieces[0].is_king() {
-            false
-        } else if pieces.len() == 2 && pieces[0].is_king() && pieces[1].is_knight() {
-            false
-        } else if pieces.len() == 2 && pieces[0].is_king() && pieces[1].is_bishop() {
-            false
-        } else if pieces.len() == 3
-            && pieces[0].is_king()
-            && pieces[1].is_knight()
-            && pieces[2].is_knight()
-        {
-            false
-        } else if pieces.len() == 3
-            && pieces[0].is_king()
-            && pieces[1].is_bishop()
-            && pieces[2].is_bishop()
-        {
-            false
-        } else {
-            true
-        }
-    }
-
-    /// Does the respective player have insufficient material?
-    #[inline]
-    pub fn has_insufficient_material(&self, color: Color) -> bool {
-        !self.has_sufficient_material(color)
-    }
-
-    /// Is the current player in stalemate?
-    pub fn is_stalemate(&self) -> bool {
-        (self.get_legal_moves().is_empty() && !self.is_in_check(self.get_current_player_color()))
-            || (self.has_insufficient_material(self.turn)
-                && self.has_insufficient_material(!self.turn))
-    }
-
-    /// Is the current player in checkmate?
-    pub fn is_checkmate(&self) -> bool {
-        self.is_in_check(self.get_current_player_color()) && self.get_legal_moves().is_empty()
-    }
-
-    /// Change the current turn to the next player.
-    #[inline]
-    pub fn change_turn(mut self) -> Self {
-        self.turn = !self.turn;
-        self
-    }
-
+    /// ### apply_move
+    ///
+    /// TODO: must understand difference between apply and make move
+    /// TODO: move match cases to private functions
     fn apply_move(&self, m: Move) -> Self {
         match m {
             Move::KingSideCastle => {
@@ -537,26 +628,6 @@ impl Board {
                 result
             }
             Move::Resign => self.remove_all(self.turn).queen_all(!self.turn),
-        }
-    }
-
-    /// Play a move and confirm it is legal.
-    pub fn play_move(&self, m: Move) -> GameResult {
-        let current_color = self.get_turn_color();
-
-        if m == Move::Resign {
-            GameResult::Victory(!current_color)
-        } else if self.is_legal_move(m, current_color) {
-            let next_turn = self.apply_move(m).change_turn();
-            if next_turn.is_checkmate() {
-                GameResult::Victory(current_color)
-            } else if next_turn.is_stalemate() {
-                GameResult::Stalemate
-            } else {
-                GameResult::Continuing(next_turn)
-            }
-        } else {
-            GameResult::IllegalMove(m)
         }
     }
 }
