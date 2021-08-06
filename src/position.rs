@@ -9,7 +9,7 @@
 //! This module also exposes all the alias for the positions (e.g. `D4` or `C6`)
 //!
 
-use super::Color;
+use super::{Color, BLACK, WHITE};
 use alloc::vec::Vec;
 
 // -- alias
@@ -138,8 +138,8 @@ impl Position {
     #[inline]
     pub const fn king_pos(color: Color) -> Self {
         match color {
-            Color::White => Self::new(0, 4),
-            Color::Black => Self::new(7, 4),
+            WHITE => Self::new(0, 4),
+            BLACK => Self::new(7, 4),
         }
     }
 
@@ -149,8 +149,8 @@ impl Position {
     #[inline]
     pub const fn queen_pos(color: Color) -> Self {
         match color {
-            Color::White => Self::new(0, 3),
-            Color::Black => Self::new(7, 3),
+            WHITE => Self::new(0, 3),
+            BLACK => Self::new(7, 3),
         }
     }
 
@@ -342,8 +342,8 @@ impl Position {
     #[inline]
     pub fn pawn_up(&self, ally_color: Color) -> Self {
         match ally_color {
-            Color::White => self.next_above(),
-            Color::Black => self.next_below(),
+            WHITE => self.next_above(),
+            BLACK => self.next_below(),
         }
     }
 
@@ -392,8 +392,8 @@ impl Position {
     #[inline]
     pub fn is_starting_pawn(&self, color: Color) -> bool {
         match color {
-            Color::White => self.row == 1,
-            Color::Black => self.row == 6,
+            WHITE => self.row == 1,
+            BLACK => self.row == 6,
         }
     }
 
@@ -403,8 +403,8 @@ impl Position {
     #[inline]
     pub fn is_kingside_rook(&self, color: Color) -> bool {
         match color {
-            Color::Black => self == &H8,
-            Color::White => self == &H1,
+            BLACK => self == &H8,
+            WHITE => self == &H1,
         }
     }
     /// ### is_queenside_rook
@@ -413,8 +413,8 @@ impl Position {
     #[inline]
     pub fn is_queenside_rook(&self, color: Color) -> bool {
         match color {
-            Color::Black => self == &A8,
-            Color::White => self == &A1,
+            BLACK => self == &A8,
+            WHITE => self == &A1,
         }
     }
 
@@ -509,17 +509,17 @@ mod test {
         assert_eq!(position.row, 0);
         assert_eq!(position.col, 4);
         // queen pos
-        let position: Position = Position::queen_pos(Color::White);
+        let position: Position = Position::queen_pos(WHITE);
         assert_eq!(position.row, 0);
         assert_eq!(position.col, 3);
-        let position: Position = Position::queen_pos(Color::Black);
+        let position: Position = Position::queen_pos(BLACK);
         assert_eq!(position.row, 7);
         assert_eq!(position.col, 3);
         // king pos
-        let position: Position = Position::king_pos(Color::White);
+        let position: Position = Position::king_pos(WHITE);
         assert_eq!(position.row, 0);
         assert_eq!(position.col, 4);
-        let position: Position = Position::king_pos(Color::Black);
+        let position: Position = Position::king_pos(BLACK);
         assert_eq!(position.row, 7);
         assert_eq!(position.col, 4);
     }
@@ -637,14 +637,14 @@ mod test {
 
     #[test]
     fn test_position_pawn_up() {
-        assert_eq!(D2.pawn_up(Color::White), D3);
-        assert_eq!(D7.pawn_up(Color::Black), D6);
+        assert_eq!(D2.pawn_up(WHITE), D3);
+        assert_eq!(D7.pawn_up(BLACK), D6);
     }
 
     #[test]
     fn test_position_pawn_back() {
-        assert_eq!(D3.pawn_back(Color::White), D2);
-        assert_eq!(D6.pawn_back(Color::Black), D7);
+        assert_eq!(D3.pawn_back(WHITE), D2);
+        assert_eq!(D6.pawn_back(BLACK), D7);
     }
 
     #[test]
@@ -659,41 +659,41 @@ mod test {
 
     #[test]
     fn test_position_is_starting_pawn() {
-        assert_eq!(A2.is_starting_pawn(Color::White), true);
-        assert_eq!(B2.is_starting_pawn(Color::White), true);
-        assert_eq!(C2.is_starting_pawn(Color::White), true);
-        assert_eq!(D2.is_starting_pawn(Color::White), true);
-        assert_eq!(E2.is_starting_pawn(Color::White), true);
-        assert_eq!(F2.is_starting_pawn(Color::White), true);
-        assert_eq!(G2.is_starting_pawn(Color::White), true);
-        assert_eq!(H2.is_starting_pawn(Color::White), true);
-        assert_eq!(A7.is_starting_pawn(Color::Black), true);
-        assert_eq!(B7.is_starting_pawn(Color::Black), true);
-        assert_eq!(C7.is_starting_pawn(Color::Black), true);
-        assert_eq!(D7.is_starting_pawn(Color::Black), true);
-        assert_eq!(E7.is_starting_pawn(Color::Black), true);
-        assert_eq!(F7.is_starting_pawn(Color::Black), true);
-        assert_eq!(G7.is_starting_pawn(Color::Black), true);
-        assert_eq!(H7.is_starting_pawn(Color::Black), true);
+        assert_eq!(A2.is_starting_pawn(WHITE), true);
+        assert_eq!(B2.is_starting_pawn(WHITE), true);
+        assert_eq!(C2.is_starting_pawn(WHITE), true);
+        assert_eq!(D2.is_starting_pawn(WHITE), true);
+        assert_eq!(E2.is_starting_pawn(WHITE), true);
+        assert_eq!(F2.is_starting_pawn(WHITE), true);
+        assert_eq!(G2.is_starting_pawn(WHITE), true);
+        assert_eq!(H2.is_starting_pawn(WHITE), true);
+        assert_eq!(A7.is_starting_pawn(BLACK), true);
+        assert_eq!(B7.is_starting_pawn(BLACK), true);
+        assert_eq!(C7.is_starting_pawn(BLACK), true);
+        assert_eq!(D7.is_starting_pawn(BLACK), true);
+        assert_eq!(E7.is_starting_pawn(BLACK), true);
+        assert_eq!(F7.is_starting_pawn(BLACK), true);
+        assert_eq!(G7.is_starting_pawn(BLACK), true);
+        assert_eq!(H7.is_starting_pawn(BLACK), true);
         // -- bad
-        assert_eq!(D4.is_starting_pawn(Color::White), false);
-        assert_eq!(D6.is_starting_pawn(Color::Black), false);
+        assert_eq!(D4.is_starting_pawn(WHITE), false);
+        assert_eq!(D6.is_starting_pawn(BLACK), false);
     }
 
     #[test]
     fn test_position_is_kingside_rook() {
-        assert_eq!(H1.is_kingside_rook(Color::White), true);
-        assert_eq!(H1.is_kingside_rook(Color::Black), false);
-        assert_eq!(H8.is_kingside_rook(Color::White), false);
-        assert_eq!(H8.is_kingside_rook(Color::Black), true);
+        assert_eq!(H1.is_kingside_rook(WHITE), true);
+        assert_eq!(H1.is_kingside_rook(BLACK), false);
+        assert_eq!(H8.is_kingside_rook(WHITE), false);
+        assert_eq!(H8.is_kingside_rook(BLACK), true);
     }
 
     #[test]
     fn test_position_is_queenside_rook() {
-        assert_eq!(A1.is_queenside_rook(Color::White), true);
-        assert_eq!(A1.is_queenside_rook(Color::Black), false);
-        assert_eq!(A8.is_queenside_rook(Color::White), false);
-        assert_eq!(A8.is_queenside_rook(Color::Black), true);
+        assert_eq!(A1.is_queenside_rook(WHITE), true);
+        assert_eq!(A1.is_queenside_rook(BLACK), false);
+        assert_eq!(A8.is_queenside_rook(WHITE), false);
+        assert_eq!(A8.is_queenside_rook(BLACK), true);
     }
 
     #[test]

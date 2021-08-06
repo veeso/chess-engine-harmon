@@ -141,7 +141,7 @@ pub enum GameResult {
     ///
     /// In a regular game of chess, threefold repetition also triggers
     /// a stalemate, but this engine does not have builtin support for
-    /// threefold repetition detection yet.
+    /// threefold repetition detection yet. TODO: add threefold repetition
     Stalemate,
     /// An illegal move was made. This can include many things,
     /// such as moving a piece through another piece, attempting

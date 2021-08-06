@@ -48,7 +48,7 @@ mod test {
 
     use super::*;
     use crate::position::C8;
-    use crate::Color;
+    use crate::WHITE;
 
     use pretty_assertions::assert_eq;
 
@@ -59,7 +59,7 @@ mod test {
         assert_eq!(square.is_empty(), true);
         assert_eq!(square.get_piece(), None);
         // from
-        let square: Square = Square::from(Piece::Queen(Color::White, C8));
+        let square: Square = Square::from(Piece::Queen(WHITE, C8));
         assert_eq!(square.is_empty(), false);
         assert_eq!(square.get_piece().unwrap().is_queen(), true);
     }
