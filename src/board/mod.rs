@@ -74,6 +74,9 @@ impl Default for Board {
     }
 }
 
+// FIXME: add MoveResult type
+// FIXME: should we use mutable references instead of all these copies?
+
 impl Board {
     // -- constructors
 
