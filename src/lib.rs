@@ -30,7 +30,7 @@
 //! ```rust,no_run
 //! extern crate harmon;
 //!
-//! use harmon::{Board, GameResult, Move};
+//! use harmon::{Board, MoveResult, Move};
 //!
 //! fn main() {
 //!     let board = Board::default();
@@ -53,11 +53,16 @@
 //!         Move::Resign => println!("resign")
 //!     }
 //!     match board.play_move(best_move) {
-//!         GameResult::Continuing(next_board) => {
+//!         MoveResult::Continuing(next_board) => {
 //!             println!("{}", next_board);
 //!         }
+//!
+//!         MoveResult::Promote(next_board, pos) => {
+//!             println!("{}", next_board);
+//!             println!("Pawn promotion available at {}", pos);
+//!         }
 //!         
-//!         GameResult::Victory(winner) => {
+//!         MoveResult::Victory(winner) => {
 //!             // You can use the ! operator on a player's
 //!             // color to invert.
 //!             println!("{} loses. {} is victorious.",
@@ -65,11 +70,11 @@
 //!             );
 //!         }
 //!         
-//!         GameResult::IllegalMove(x) => {
+//!         MoveResult::IllegalMove(x) => {
 //!             eprintln!("{} is an illegal move.", x);
 //!         }
 //!         
-//!         GameResult::Stalemate => {
+//!         MoveResult::Stalemate => {
 //!             println!("Drawn game.");
 //!         }
 //!     }
@@ -82,13 +87,14 @@
 //! ```rust,no_run
 //! extern crate harmon;
 //!
-//! use harmon::{Board, GameResult, Move};
+//! use harmon::{Board, MoveResult, Move};
 //!
 //! // TODO: complete with other variants
 //!
 //! fn main() {
 //!
 //! }
+//! ```
 //!
 //! ## Game Vs. Board
 //!
