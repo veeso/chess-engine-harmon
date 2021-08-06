@@ -15,6 +15,7 @@ use super::{Color, GameResult, Move, Piece, Position, Square, BLACK, WHITE};
 use crate::position::{
     A1, A2, A3, A4, A7, A8, B1, B5, B8, C1, C5, C8, D1, D8, E1, E8, F1, F5, F8, G1, G5, G8, H1, H8,
 };
+
 use alloc::{
     string::{String, ToString},
     vec::Vec,
@@ -30,16 +31,18 @@ pub use builder::BoardBuilder;
 
 /// ## Board
 ///
-/// Contains the Chess game
+/// Contains the Chess game itself
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Board {
+    /// the 64 squares of the chess board
     squares: [Square; 64],
-
+    /// tracks eventually a possible en passant position
     en_passant: Option<Position>,
-
+    /// castling rights for white player
     white_castling_rights: CastlingRights,
+    /// castling rights for black player
     black_castling_rights: CastlingRights,
-
+    /// describes which player has to move the next turn
     turn: Color,
 }
 
@@ -192,14 +195,13 @@ impl Board {
         Vec::new()
     }
 
-    /// ### value_for
+    /// ### get_player_value
     ///
     /// Get the value of the board for a given color.
     /// This subtracts the opponents value, and accounts for piece positions
     /// and material value.
-    /// TODO: rethink names
     #[inline]
-    pub fn value_for(&self, ally_color: Color) -> f64 {
+    pub fn get_player_value(&self, ally_color: Color) -> f64 {
         self.squares
             .iter()
             .map(|square| match square.get_piece() {
@@ -235,8 +237,8 @@ impl Board {
     /// ally color, return true. Otherwise, return false.
     ///
     /// For example, if a square has a black piece, and this method is called
-    /// upon it with an `ally_color` of `Color::White`, then it will return true.
-    /// If called with `Color::Black` upon the same square, however, it will return false.
+    /// upon it with an `ally_color` of `WHITE`, then it will return true.
+    /// If called with `BLACK` upon the same square, however, it will return false.
     #[inline]
     pub fn has_enemy_piece(&self, pos: Position, ally_color: Color) -> bool {
         if let Some(piece) = self.get_piece(pos) {
@@ -718,54 +720,68 @@ impl Board {
     /// ### apply_move
     ///
     /// Apply a move to the board and return a new Board with the move applied
-    /// TODO: move match cases to private functions
     fn apply_move(&self, m: Move) -> Self {
         match m {
-            Move::KingSideCastle => {
-                if let Some(king_pos) = self.get_king_pos(self.turn) {
-                    let rook_pos = match self.turn {
-                        WHITE => Position::new(0, 7),
-                        BLACK => Position::new(7, 7),
-                    };
-                    self.move_piece(king_pos, rook_pos.next_left())
-                        .move_piece(rook_pos, king_pos.next_right())
-                } else {
-                    *self
-                }
-            }
-            Move::QueenSideCastle => {
-                if let Some(king_pos) = self.get_king_pos(self.turn) {
-                    let rook_pos = match self.turn {
-                        WHITE => Position::new(0, 0),
-                        BLACK => Position::new(7, 0),
-                    };
-                    self.move_piece(king_pos, king_pos.next_left().next_left())
-                        .move_piece(rook_pos, king_pos.next_left())
-                } else {
-                    *self
-                }
-            }
-
-            Move::Piece(from, to) => {
-                let mut result = self.move_piece(from, to);
-
-                if let (Some(en_passant), Some(Piece::Pawn(player_color, _))) =
-                    (self.en_passant, self.get_piece(from))
-                {
-                    if (en_passant == from.pawn_up(player_color).next_left()
-                        || en_passant == from.pawn_up(player_color).next_right())
-                        && en_passant == to
-                    {
-                        result.squares[((7 - en_passant.pawn_back(player_color).get_row()) * 8
-                            + en_passant.get_col())
-                            as usize] = Square::empty();
-                    }
-                }
-
-                result
-            }
+            Move::KingSideCastle => self.apply_kingside_castle(),
+            Move::QueenSideCastle => self.apply_queenside_castle(),
+            Move::Piece(from, to) => self.apply_piece_move(from, to),
             Move::Resign => *self, // Resign does nothing
         }
+    }
+
+    /// ### apply_kingside_castle
+    ///
+    /// Apply kingside castle to board
+    fn apply_kingside_castle(&self) -> Self {
+        if let Some(king_pos) = self.get_king_pos(self.turn) {
+            let rook_pos = match self.turn {
+                WHITE => Position::new(0, 7),
+                BLACK => Position::new(7, 7),
+            };
+            self.move_piece(king_pos, rook_pos.next_left())
+                .move_piece(rook_pos, king_pos.next_right())
+        } else {
+            *self
+        }
+    }
+
+    /// ### apply_queenside_castle
+    ///
+    /// Apply kingside castle to board
+    fn apply_queenside_castle(&self) -> Self {
+        if let Some(king_pos) = self.get_king_pos(self.turn) {
+            let rook_pos = match self.turn {
+                WHITE => Position::new(0, 0),
+                BLACK => Position::new(7, 0),
+            };
+            self.move_piece(king_pos, king_pos.next_left().next_left())
+                .move_piece(rook_pos, king_pos.next_left())
+        } else {
+            *self
+        }
+    }
+
+    /// ### apply_piece_move
+    ///
+    /// Move piece from `from` to `to` and eventually handle "en passant"
+    fn apply_piece_move(&self, from: Position, to: Position) -> Self {
+        // move piece
+        let mut result = self.move_piece(from, to);
+
+        // Handle en_passant
+        if let (Some(en_passant), Some(Piece::Pawn(player_color, _))) =
+            (self.en_passant, self.get_piece(from))
+        {
+            if (en_passant == from.pawn_up(player_color).next_left()
+                || en_passant == from.pawn_up(player_color).next_right())
+                && en_passant == to
+            {
+                result.squares[((7 - en_passant.pawn_back(player_color).get_row()) * 8
+                    + en_passant.get_col()) as usize] = Square::empty();
+            }
+        }
+
+        result
     }
 
     /// ### minimax
@@ -789,7 +805,7 @@ impl Board {
         *board_count += 1;
 
         if depth == 0 {
-            return self.value_for(getting_move_for);
+            return self.get_player_value(getting_move_for);
         }
 
         let legal_moves = self.get_legal_moves();
