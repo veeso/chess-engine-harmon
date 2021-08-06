@@ -24,8 +24,10 @@ use core::cmp::Ordering;
 
 // Modules
 pub mod builder;
+mod castling_rights;
 // Export
 pub use builder::BoardBuilder;
+pub use castling_rights::CastlingRights;
 
 // -- Board
 
@@ -215,6 +217,45 @@ impl Board {
                 None => 0.0,
             })
             .sum()
+    }
+
+    /// ### get_rating
+    ///
+    /// get rating for two players in percentage.
+    /// First value is for white, second value is for black
+    pub fn get_rating(&self, depth: usize) -> (f64, f64) {
+        let turn_color: Color = self.get_turn_color();
+        let (best_m, _, your_best_val) = self.get_best_next_move(depth);
+        let (_, _, your_lowest_val) = self.get_worst_next_move(depth);
+        let mut your_val = your_best_val + your_lowest_val;
+        let (_, _, their_best_val) = self
+            .apply_move(best_m)
+            .change_turn()
+            .get_best_next_move(depth);
+        let (_, _, their_lowest_val) = self
+            .apply_move(best_m)
+            .change_turn()
+            .get_worst_next_move(depth);
+        let mut their_val = their_best_val + their_lowest_val;
+
+        if your_val < 0.0 {
+            your_val = -your_val;
+            their_val += your_val * 2.0;
+        }
+
+        if their_val < 0.0 {
+            their_val = -their_val;
+            your_val += their_val * 2.0;
+        }
+
+        // Return players percentage
+        let your_percentage: f64 = your_val / (your_val + their_val);
+        let their_percentage: f64 = their_val / (your_val + their_val);
+        // If turn color is white, return first value as white, otherwise invert
+        match turn_color {
+            WHITE => (your_percentage, their_percentage),
+            BLACK => (their_percentage, your_percentage),
+        }
     }
 
     // -- checks
@@ -472,7 +513,7 @@ impl Board {
     ///
     /// It's best not to use the rating value by itself for anything, as it
     /// is relative to the other player's move ratings as well.
-    pub fn get_best_next_move(&self, depth: i32) -> (Move, u64, f64) {
+    pub fn get_best_next_move(&self, depth: usize) -> (Move, u64, f64) {
         let legal_moves = self.get_legal_moves();
         let mut best_move_value = -999999.0;
         let mut best_move = Move::Resign;
@@ -510,7 +551,7 @@ impl Board {
     ///
     /// It's best not to use the rating value by itself for anything, as it
     /// is relative to the other player's move ratings as well.
-    pub fn get_worst_next_move(&self, depth: i32) -> (Move, u64, f64) {
+    pub fn get_worst_next_move(&self, depth: usize) -> (Move, u64, f64) {
         let legal_moves = self.get_legal_moves();
         let mut best_move_value = -999999.0;
         let mut best_move = Move::Resign;
@@ -610,49 +651,6 @@ impl Board {
         } else {
             GameResult::IllegalMove(m)
         }
-    }
-
-    /// ### rating_bar
-    ///
-    /// print rating bar
-    pub fn rating_bar(&self, len: usize) -> String {
-        // TODO: return data, not string
-        let (best_m, _, your_best_val) = self.get_best_next_move(2);
-        let (_, _, your_lowest_val) = self.get_worst_next_move(2);
-        let mut your_val = your_best_val + your_lowest_val;
-        let (_, _, their_best_val) = self.apply_move(best_m).change_turn().get_best_next_move(2);
-        let (_, _, their_lowest_val) = self.apply_move(best_m).change_turn().get_worst_next_move(2);
-        let mut their_val = their_best_val + their_lowest_val;
-
-        if your_val < 0.0 {
-            your_val = -your_val;
-            their_val += your_val * 2.0;
-        }
-
-        if their_val < 0.0 {
-            their_val = -their_val;
-            your_val += their_val * 2.0;
-        }
-
-        let your_percentage = your_val / (your_val + their_val);
-        let their_percentage = their_val / (your_val + their_val);
-
-        let (your_color, their_color) = match self.turn {
-            WHITE => ("▓", "░"),
-            BLACK => ("░", "▓"),
-        };
-
-        let white = match self.turn {
-            WHITE => your_color.repeat((your_percentage * len as f64) as usize),
-            BLACK => their_color.repeat((their_percentage * len as f64) as usize),
-        };
-
-        let black = match self.turn {
-            BLACK => your_color.repeat((your_percentage * len as f64) as usize),
-            WHITE => their_color.repeat((their_percentage * len as f64) as usize),
-        };
-
-        white + &black
     }
 
     // -- private
@@ -795,7 +793,7 @@ impl Board {
     /// are categorically eliminated by this algorithm.
     fn minimax(
         &self,
-        depth: i32,
+        depth: usize,
         mut alpha: f64,
         mut beta: f64,
         is_maximizing: bool,
@@ -870,13 +868,34 @@ impl Board {
 
 impl core::fmt::Display for Board {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> Result<(), core::fmt::Error> {
-        let rating_bar = self.rating_bar(16);
+        // Make progress bar
+        let (white_score, black_score): (f64, f64) = self.get_rating(4);
+        let (your_color, their_color) = match self.turn {
+            WHITE => ("▓", "░"),
+            BLACK => ("░", "▓"),
+        };
+        let (your_score, their_score): (f64, f64) = match self.turn {
+            WHITE => (white_score, black_score),
+            BLACK => (black_score, white_score),
+        };
+
+        let white = match self.turn {
+            WHITE => your_color.repeat((your_score * 16 as f64) as usize),
+            BLACK => their_color.repeat((their_score * 16 as f64) as usize),
+        };
+
+        let black = match self.turn {
+            BLACK => your_color.repeat((your_score * 16 as f64) as usize),
+            WHITE => their_color.repeat((their_score * 16 as f64) as usize),
+        };
+        let rating_bar = white + &black;
+        // Prepare labels
         let abc = if self.turn == WHITE {
             "abcdefgh"
         } else {
             "hgfedcba"
         };
-
+        // Write board
         write!(f, "   {}\n  ╔════════╗", abc)?;
         let mut square_color = !self.turn;
         let height = 8;
@@ -939,62 +958,6 @@ impl core::fmt::Display for Board {
         }
 
         write!(f, "\n  ╚════════╝\n   {}\n", abc)
-    }
-}
-
-// -- Castling rights
-
-/// ### CastlingRights
-///
-/// Defines the castling rights for the game
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct CastlingRights {
-    kingside: bool,
-    queenside: bool,
-}
-
-impl Default for CastlingRights {
-    fn default() -> Self {
-        Self {
-            kingside: true,
-            queenside: true,
-        }
-    }
-}
-
-impl CastlingRights {
-    fn can_kingside_castle(&self) -> bool {
-        self.kingside
-    }
-
-    fn can_queenside_castle(&self) -> bool {
-        self.queenside
-    }
-
-    fn disable_kingside(&mut self) {
-        self.kingside = false
-    }
-
-    fn disable_queenside(&mut self) {
-        self.queenside = false
-    }
-
-    fn disable_all(&mut self) {
-        self.disable_kingside();
-        self.disable_queenside()
-    }
-
-    fn enable_kingside(&mut self) {
-        self.kingside = true
-    }
-
-    fn enable_queenside(&mut self) {
-        self.queenside = true
-    }
-
-    fn enable_all(&mut self) {
-        self.enable_kingside();
-        self.enable_queenside()
     }
 }
 
