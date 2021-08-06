@@ -112,7 +112,7 @@ extern crate std;
 // -- modules
 
 mod board;
-pub use board::{Board, BoardBuilder};
+pub use board::{Board, BoardBuilder, MoveResult, Promotion};
 
 mod game;
 pub use game::GameResult;

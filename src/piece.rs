@@ -791,7 +791,7 @@ mod test {
     use super::*;
     use crate::board::BoardBuilder;
     use crate::position::*;
-    use crate::GameResult;
+    use crate::MoveResult;
 
     use alloc::string::ToString;
     use pretty_assertions::assert_eq;
@@ -1024,19 +1024,19 @@ mod test {
     fn test_piece_get_pawn_legal_moves_en_passant() {
         // En passant - edge case 😈
         let mut board: Board = Board::default();
-        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(E2, E4)) {
+        if let MoveResult::Continuing(next_board) = board.play_move(Move::Piece(E2, E4)) {
             // White pawn
             board = next_board;
         }
-        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(H7, H5)) {
+        if let MoveResult::Continuing(next_board) = board.play_move(Move::Piece(H7, H5)) {
             // Black pawn
             board = next_board;
         }
-        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(E4, E5)) {
+        if let MoveResult::Continuing(next_board) = board.play_move(Move::Piece(E4, E5)) {
             // White pawn
             board = next_board;
         }
-        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(F7, F5)) {
+        if let MoveResult::Continuing(next_board) = board.play_move(Move::Piece(F7, F5)) {
             // Black pawn
             board = next_board;
         }
@@ -1164,22 +1164,22 @@ mod test {
     fn test_piece_get_king_legal_moves_castling() {
         // Kingside Castling (giuoco piano)
         let mut board: Board = Board::default();
-        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(E2, E4)) {
+        if let MoveResult::Continuing(next_board) = board.play_move(Move::Piece(E2, E4)) {
             board = next_board;
         }
-        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(E7, E5)) {
+        if let MoveResult::Continuing(next_board) = board.play_move(Move::Piece(E7, E5)) {
             board = next_board;
         }
-        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(G1, F3)) {
+        if let MoveResult::Continuing(next_board) = board.play_move(Move::Piece(G1, F3)) {
             board = next_board;
         }
-        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(B8, C6)) {
+        if let MoveResult::Continuing(next_board) = board.play_move(Move::Piece(B8, C6)) {
             board = next_board;
         }
-        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(F1, C4)) {
+        if let MoveResult::Continuing(next_board) = board.play_move(Move::Piece(F1, C4)) {
             board = next_board;
         }
-        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(F8, C5)) {
+        if let MoveResult::Continuing(next_board) = board.play_move(Move::Piece(F8, C5)) {
             board = next_board;
         }
         assert_eq!(
@@ -1191,10 +1191,10 @@ mod test {
             ]
         );
         // Also black can castle now
-        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(C2, C3)) {
+        if let MoveResult::Continuing(next_board) = board.play_move(Move::Piece(C2, C3)) {
             board = next_board;
         }
-        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(G8, F6)) {
+        if let MoveResult::Continuing(next_board) = board.play_move(Move::Piece(G8, F6)) {
             board = next_board;
         }
         assert_eq!(
@@ -1206,25 +1206,25 @@ mod test {
             ]
         );
         // Allow also queenside castling
-        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(D1, A4)) {
+        if let MoveResult::Continuing(next_board) = board.play_move(Move::Piece(D1, A4)) {
             board = next_board;
         }
-        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(D8, E7)) {
+        if let MoveResult::Continuing(next_board) = board.play_move(Move::Piece(D8, E7)) {
             board = next_board;
         }
-        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(B1, A3)) {
+        if let MoveResult::Continuing(next_board) = board.play_move(Move::Piece(B1, A3)) {
             board = next_board;
         }
-        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(B7, B5)) {
+        if let MoveResult::Continuing(next_board) = board.play_move(Move::Piece(B7, B5)) {
             board = next_board;
         }
-        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(D2, D4)) {
+        if let MoveResult::Continuing(next_board) = board.play_move(Move::Piece(D2, D4)) {
             board = next_board;
         }
-        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(C8, B7)) {
+        if let MoveResult::Continuing(next_board) = board.play_move(Move::Piece(C8, B7)) {
             board = next_board;
         }
-        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(C1, G5)) {
+        if let MoveResult::Continuing(next_board) = board.play_move(Move::Piece(C1, G5)) {
             board = next_board;
         }
         assert_eq!(
@@ -1236,7 +1236,7 @@ mod test {
                 Move::QueenSideCastle
             ]
         );
-        if let GameResult::Continuing(next_board) = board.play_move(Move::Piece(E8, C8)) {
+        if let MoveResult::Continuing(next_board) = board.play_move(Move::Piece(E8, C8)) {
             board = next_board;
         }
         assert_eq!(

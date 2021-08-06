@@ -11,7 +11,7 @@
 //! - Dunsany's chess (TODO:)
 //!
 
-use super::{Color, GameResult, Move, Piece, Position, Square, BLACK, WHITE};
+use super::{Color, Move, Piece, Position, Square, BLACK, WHITE};
 use crate::position::{
     A1, A2, A3, A4, A7, A8, B1, B5, B8, C1, C5, C8, D1, D8, E1, E8, F1, F5, F8, G1, G5, G8, H1, H8,
 };
@@ -23,11 +23,14 @@ use alloc::{
 use core::cmp::Ordering;
 
 // Modules
-pub mod builder;
+mod builder;
 mod castling_rights;
+mod types;
+// Use
+use castling_rights::CastlingRights;
 // Export
 pub use builder::BoardBuilder;
-pub use castling_rights::CastlingRights;
+pub use types::{MoveResult, Promotion};
 
 // -- Board
 
@@ -40,6 +43,7 @@ pub struct Board {
     squares: [Square; 64],
     /// tracks eventually a possible en passant position
     en_passant: Option<Position>,
+    // TODO: promotion: Option<Position>,
     /// castling rights for white player
     white_castling_rights: CastlingRights,
     /// castling rights for black player
@@ -74,7 +78,6 @@ impl Default for Board {
     }
 }
 
-// FIXME: add MoveResult type
 // FIXME: should we use mutable references instead of all these copies?
 
 impl Board {
@@ -637,24 +640,36 @@ impl Board {
     /// ### play_move
     ///
     /// Play a move and confirm it is legal.
-    pub fn play_move(&self, m: Move) -> GameResult {
+    /// Panics if a promotion must be performed first
+    pub fn play_move(&self, m: Move) -> MoveResult {
         let current_color = self.get_turn_color();
 
+        // TODO: panic if promotion is available
         if m == Move::Resign {
-            GameResult::Victory(!current_color)
+            MoveResult::Victory(!current_color)
         } else if self.is_legal_move(m, current_color) {
             let next_turn = self.apply_move(m).change_turn();
             if next_turn.is_checkmate() {
-                GameResult::Victory(current_color)
+                MoveResult::Victory(current_color)
             } else if next_turn.is_stalemate() {
-                GameResult::Stalemate
+                MoveResult::Stalemate
             } else {
-                GameResult::Continuing(next_turn)
+                // TODO: check promotion
+                MoveResult::Continuing(next_turn)
             }
         } else {
-            GameResult::IllegalMove(m)
+            MoveResult::IllegalMove(m)
         }
     }
+
+    /* TODO: implement
+    /// ### promote
+    ///
+    /// Promote the pawn on the last line.
+    /// Panics if there is no pawn to promote.
+    /// Returns the updated board
+    pub fn promote(&self, promote: Promotion) -> Board {}
+    */
 
     // -- private
 
@@ -963,16 +978,3 @@ impl core::fmt::Display for Board {
         write!(f, "\n  ╚════════╝\n   {}\n", abc)
     }
 }
-
-// CHECK: promotions?
-/*
-pub enum Promotion {
-    Queen,
-    Knight,
-    Bishop,
-    Rook,
-}
-
-pub fn promote(&self, pos: Position, promote: Promotion) -> GameResult;
-
-*/
