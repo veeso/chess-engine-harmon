@@ -27,7 +27,7 @@
 //! ```rust,no_run
 //! extern crate harmon;
 //!
-//! use harmon::{Board, Evaluate, GameResult, Move};
+//! use harmon::{Board, GameResult, Move};
 //!
 //! fn main() {
 //!     let board = Board::default();
@@ -77,7 +77,7 @@
 //! ```rust,no_run
 //! extern crate harmon;
 //!
-//! use harmon::{Board, Evaluate, GameResult, Move};
+//! use harmon::{Board, GameResult, Move};
 //!
 //! // TODO: complete with other variants
 //!
@@ -97,7 +97,6 @@
 #![no_std]
 #[macro_use]
 extern crate alloc;
-use alloc::vec::Vec;
 
 #[cfg(test)] // NOTE: Enable std for test units
 extern crate std;
@@ -237,196 +236,6 @@ impl core::fmt::Display for Move {
             Move::QueenSideCastle => write!(f, "O-O-O"),
             Move::Resign => write!(f, "Resign"),
         }
-    }
-}
-
-/// ## Evaluate
-///
-/// Evaluate a board and extract information, such as the best and worst moves.
-pub trait Evaluate: Sized {
-    /// ### value_for
-    ///
-    /// Get the value of the board for a given color.
-    /// This subtracts the opponents value, and accounts for piece positions
-    /// and material value.
-    fn value_for(&self, color: Color) -> f64;
-
-    /// ### get_current_player_color
-    ///
-    /// Get the current player's color.
-    fn get_current_player_color(&self) -> Color;
-
-    /// ### get_legal_moves
-    ///
-    /// Get the legal moves for the current player.
-    fn get_legal_moves(&self) -> Vec<Move>;
-
-    /// ### get_piece_legal_moves
-    ///
-    /// Get legal moves for piece at provided position
-    fn get_piece_legal_moves(&self, pos: Position) -> Vec<Move>;
-
-    /// ### apply_eval_move
-    ///
-    /// Apply a move to the board for evaluation.
-    fn apply_eval_move(&self, m: Move) -> Self;
-
-    /// ### get_best_next_move
-    ///
-    /// Get the best move for the current player with `depth` number of moves
-    /// of lookahead.
-    ///
-    /// This method returns
-    /// 1. The best move
-    /// 2. The number of boards evaluated to come to a conclusion
-    /// 3. The rating of the best move
-    ///
-    /// It's best not to use the rating value by itself for anything, as it
-    /// is relative to the other player's move ratings as well.
-    fn get_best_next_move(&self, depth: i32) -> (Move, u64, f64) {
-        let legal_moves = self.get_legal_moves();
-        let mut best_move_value = -999999.0;
-        let mut best_move = Move::Resign;
-
-        let color = self.get_current_player_color();
-
-        let mut board_count = 0;
-        for m in &legal_moves {
-            let child_board_value = self.apply_eval_move(*m).minimax(
-                depth,
-                -1000000.0,
-                1000000.0,
-                false,
-                color,
-                &mut board_count,
-            );
-            if child_board_value >= best_move_value {
-                best_move = *m;
-                best_move_value = child_board_value;
-            }
-        }
-
-        (best_move, board_count, best_move_value)
-    }
-
-    /// ### get_worst_next_move
-    ///
-    /// Get the worst move for the current player with `depth` number of moves
-    /// of lookahead.
-    ///
-    /// This method returns
-    /// 1. The worst move
-    /// 2. The number of boards evaluated to come to a conclusion
-    /// 3. The rating of the best move
-    ///
-    /// It's best not to use the rating value by itself for anything, as it
-    /// is relative to the other player's move ratings as well.
-    fn get_worst_next_move(&self, depth: i32) -> (Move, u64, f64) {
-        let legal_moves = self.get_legal_moves();
-        let mut best_move_value = -999999.0;
-        let mut best_move = Move::Resign;
-
-        let color = self.get_current_player_color();
-
-        let mut board_count = 0;
-        for m in &legal_moves {
-            let child_board_value = self.apply_eval_move(*m).minimax(
-                depth,
-                -1000000.0,
-                1000000.0,
-                true,
-                !color,
-                &mut board_count,
-            );
-
-            if child_board_value >= best_move_value {
-                best_move = *m;
-                best_move_value = child_board_value;
-            }
-        }
-
-        (best_move, board_count, best_move_value)
-    }
-
-    /// ### minimax
-    ///
-    /// Perform minimax on a certain position, and get the minimum or maximum value
-    /// for a board. To get the best move, you minimize the values of the possible outcomes from your
-    /// own position, and maximize the values of the replies made by the other player.
-    ///
-    /// In other words, choose moves with the assumption that your opponent will make the
-    /// best possible replies to your moves. Moves that are seemingly good, but are easily countered,
-    /// are categorically eliminated by this algorithm.
-    fn minimax(
-        &self,
-        depth: i32,
-        mut alpha: f64,
-        mut beta: f64,
-        is_maximizing: bool,
-        getting_move_for: Color,
-        board_count: &mut u64,
-    ) -> f64 {
-        *board_count += 1;
-
-        if depth == 0 {
-            return self.value_for(getting_move_for);
-        }
-
-        let legal_moves = self.get_legal_moves();
-        let mut best_move_value;
-
-        if is_maximizing {
-            best_move_value = -999999.0;
-
-            for m in &legal_moves {
-                let child_board_value = self.apply_eval_move(*m).minimax(
-                    depth - 1,
-                    alpha,
-                    beta,
-                    !is_maximizing,
-                    getting_move_for,
-                    board_count,
-                );
-
-                if child_board_value > best_move_value {
-                    best_move_value = child_board_value;
-                }
-
-                if best_move_value > alpha {
-                    alpha = best_move_value
-                }
-
-                if beta <= alpha {
-                    return best_move_value;
-                }
-            }
-        } else {
-            best_move_value = 999999.0;
-
-            for m in &legal_moves {
-                let child_board_value = self.apply_eval_move(*m).minimax(
-                    depth - 1,
-                    alpha,
-                    beta,
-                    !is_maximizing,
-                    getting_move_for,
-                    board_count,
-                );
-                if child_board_value < best_move_value {
-                    best_move_value = child_board_value;
-                }
-
-                if best_move_value < beta {
-                    beta = best_move_value
-                }
-
-                if beta <= alpha {
-                    return best_move_value;
-                }
-            }
-        }
-
-        best_move_value
     }
 }
 

@@ -11,7 +11,7 @@
 //! - Dunsany's chess (TODO:)
 //!
 
-use super::{Color, Evaluate, GameResult, Move, Piece, Position, Square, BLACK, WHITE};
+use super::{Color, GameResult, Move, Piece, Position, Square, BLACK, WHITE};
 use crate::position::{
     A1, A2, A3, A4, A7, A8, B1, B5, B8, C1, C5, C8, D1, D8, E1, E8, F1, F5, F8, G1, G5, G8, H1, H8,
 };
@@ -70,6 +70,8 @@ impl Default for Board {
 }
 
 impl Board {
+    // -- constructors
+
     /// ### horde
     ///
     /// Create the default board for the Horde variant
@@ -101,6 +103,8 @@ impl Board {
         }
     }
 
+    // -- getters
+
     /// ### get_turn_color
     ///
     /// Get the color of the current player
@@ -114,48 +118,6 @@ impl Board {
     /// Get the position of the En-Passant square
     pub fn get_en_passant(&self) -> Option<Position> {
         self.en_passant
-    }
-
-    /// ### remove_all
-    ///
-    /// Remove all of the pieces for a given player
-    pub fn remove_all(&self, color: Color) -> Self {
-        let mut result = *self;
-        for square in &mut result.squares {
-            if let Some(piece) = square.get_piece() {
-                if piece.get_color() == color {
-                    *square = Square::empty()
-                }
-            }
-        }
-
-        result
-    }
-
-    /// ### queen_all
-    ///
-    /// Convert all of a given players pieces to queens
-    pub fn queen_all(&self, color: Color) -> Self {
-        let mut result = *self;
-        for square in &mut result.squares {
-            if let Some(piece) = square.get_piece() {
-                if !piece.is_king() && piece.get_color() == color {
-                    *square = Square::from(Piece::Queen(color, piece.get_pos()))
-                }
-            }
-        }
-
-        result
-    }
-
-    /// ### set_turn
-    ///
-    /// Make the game a certain player's turn
-    #[inline]
-    pub fn set_turn(&self, color: Color) -> Self {
-        let mut result = *self;
-        result.turn = color;
-        result
     }
 
     /// ### get_material_advantage
@@ -188,6 +150,72 @@ impl Board {
         }
         self.squares[((7 - pos.get_row()) * 8 + pos.get_col()) as usize].get_piece()
     }
+
+    /// ### get_king_pos
+    ///
+    /// If there is a king on the board, return the position that it sits on.
+    pub fn get_king_pos(&self, color: Color) -> Option<Position> {
+        let mut king_pos = None;
+        for square in &self.squares {
+            if let Some(Piece::King(c, pos)) = square.get_piece() {
+                if c == color {
+                    king_pos = Some(pos);
+                }
+            }
+        }
+        king_pos
+    }
+
+    #[inline]
+    pub fn get_legal_moves(&self) -> Vec<Move> {
+        let mut result = vec![];
+        let color = self.get_turn_color();
+        for square in &self.squares {
+            if let Some(piece) = square.get_piece() {
+                if piece.get_color() == color {
+                    result.extend(piece.get_legal_moves(self))
+                }
+            }
+        }
+
+        result
+    }
+
+    #[inline]
+    pub fn get_piece_legal_moves(&self, pos: Position) -> Vec<Move> {
+        let color = self.get_turn_color();
+        if let Some(piece) = self.get_piece(pos) {
+            if piece.get_color() == color {
+                return piece.get_legal_moves(self);
+            }
+        }
+        Vec::new()
+    }
+
+    /// ### value_for
+    ///
+    /// Get the value of the board for a given color.
+    /// This subtracts the opponents value, and accounts for piece positions
+    /// and material value.
+    /// TODO: rethink names
+    #[inline]
+    pub fn value_for(&self, ally_color: Color) -> f64 {
+        self.squares
+            .iter()
+            .map(|square| match square.get_piece() {
+                Some(piece) => {
+                    if piece.get_color() == ally_color {
+                        piece.get_weighted_value()
+                    } else {
+                        -piece.get_weighted_value()
+                    }
+                }
+                None => 0.0,
+            })
+            .sum()
+    }
+
+    // -- checks
 
     /// ### has_ally_piece
     ///
@@ -234,21 +262,6 @@ impl Board {
     #[inline]
     pub fn has_no_piece(&self, pos: Position) -> bool {
         self.get_piece(pos) == None
-    }
-
-    /// ### get_king_pos
-    ///
-    /// If there is a king on the board, return the position that it sits on.
-    pub fn get_king_pos(&self, color: Color) -> Option<Position> {
-        let mut king_pos = None;
-        for square in &self.squares {
-            if let Some(Piece::King(c, pos)) = square.get_piece() {
-                if c == color {
-                    king_pos = Some(pos);
-                }
-            }
-        }
-        king_pos
     }
 
     /// ### is_threatened
@@ -431,7 +444,7 @@ impl Board {
     ///
     /// Is the current player in stalemate?
     pub fn is_stalemate(&self) -> bool {
-        (self.get_legal_moves().is_empty() && !self.is_in_check(self.get_current_player_color()))
+        (self.get_legal_moves().is_empty() && !self.is_in_check(self.get_turn_color()))
             || (self.has_insufficient_material(self.turn)
                 && self.has_insufficient_material(!self.turn))
     }
@@ -440,7 +453,130 @@ impl Board {
     ///
     /// Is the current player in checkmate?
     pub fn is_checkmate(&self) -> bool {
-        self.is_in_check(self.get_current_player_color()) && self.get_legal_moves().is_empty()
+        self.is_in_check(self.get_turn_color()) && self.get_legal_moves().is_empty()
+    }
+
+    // -- evaluation
+
+    /// ### get_best_next_move
+    ///
+    /// Get the best move for the current player with `depth` number of moves
+    /// of lookahead.
+    ///
+    /// This method returns
+    /// 1. The best move
+    /// 2. The number of boards evaluated to come to a conclusion
+    /// 3. The rating of the best move
+    ///
+    /// It's best not to use the rating value by itself for anything, as it
+    /// is relative to the other player's move ratings as well.
+    pub fn get_best_next_move(&self, depth: i32) -> (Move, u64, f64) {
+        let legal_moves = self.get_legal_moves();
+        let mut best_move_value = -999999.0;
+        let mut best_move = Move::Resign;
+
+        let color = self.get_turn_color();
+
+        let mut board_count = 0;
+        for m in &legal_moves {
+            let child_board_value = self.apply_move(*m).minimax(
+                depth,
+                -1000000.0,
+                1000000.0,
+                false,
+                color,
+                &mut board_count,
+            );
+            if child_board_value >= best_move_value {
+                best_move = *m;
+                best_move_value = child_board_value;
+            }
+        }
+
+        (best_move, board_count, best_move_value)
+    }
+
+    /// ### get_worst_next_move
+    ///
+    /// Get the worst move for the current player with `depth` number of moves
+    /// of lookahead.
+    ///
+    /// This method returns
+    /// 1. The worst move
+    /// 2. The number of boards evaluated to come to a conclusion
+    /// 3. The rating of the best move
+    ///
+    /// It's best not to use the rating value by itself for anything, as it
+    /// is relative to the other player's move ratings as well.
+    pub fn get_worst_next_move(&self, depth: i32) -> (Move, u64, f64) {
+        let legal_moves = self.get_legal_moves();
+        let mut best_move_value = -999999.0;
+        let mut best_move = Move::Resign;
+
+        let color = self.get_turn_color();
+
+        let mut board_count = 0;
+        for m in &legal_moves {
+            let child_board_value = self.apply_move(*m).minimax(
+                depth,
+                -1000000.0,
+                1000000.0,
+                true,
+                !color,
+                &mut board_count,
+            );
+
+            if child_board_value >= best_move_value {
+                best_move = *m;
+                best_move_value = child_board_value;
+            }
+        }
+
+        (best_move, board_count, best_move_value)
+    }
+
+    // -- modifiers
+
+    /// ### remove_all
+    ///
+    /// Remove all of the pieces for a given player
+    pub fn remove_all(&self, color: Color) -> Self {
+        let mut result = *self;
+        for square in &mut result.squares {
+            if let Some(piece) = square.get_piece() {
+                if piece.get_color() == color {
+                    *square = Square::empty()
+                }
+            }
+        }
+
+        result
+    }
+
+    /// ### queen_all
+    ///
+    /// Convert all of a given players pieces to queens
+    pub fn queen_all(&self, color: Color) -> Self {
+        let mut result = *self;
+        for square in &mut result.squares {
+            if let Some(piece) = square.get_piece() {
+                if !piece.is_king() && piece.get_color() == color {
+                    *square = Square::from(Piece::Queen(color, piece.get_pos()))
+                }
+            }
+        }
+
+        result
+    }
+
+    /// ### set_turn
+    ///
+    /// Make the game a certain player's turn
+    #[inline]
+    pub fn set_turn(&self, color: Color) -> Self {
+        let mut result = *self;
+        result.turn = color;
+        result
     }
 
     /// ### change_turn
@@ -478,6 +614,7 @@ impl Board {
     ///
     /// print rating bar
     pub fn rating_bar(&self, len: usize) -> String {
+        // TODO: return data, not string
         let (best_m, _, your_best_val) = self.get_best_next_move(2);
         let (_, _, your_lowest_val) = self.get_worst_next_move(2);
         let mut your_val = your_best_val + your_lowest_val;
@@ -580,7 +717,7 @@ impl Board {
 
     /// ### apply_move
     ///
-    /// TODO: must understand difference between apply and make move
+    /// Apply a move to the board and return a new Board with the move applied
     /// TODO: move match cases to private functions
     fn apply_move(&self, m: Move) -> Self {
         match m {
@@ -627,65 +764,89 @@ impl Board {
 
                 result
             }
-            Move::Resign => self.remove_all(self.turn).queen_all(!self.turn),
+            Move::Resign => *self, // Resign does nothing
         }
     }
-}
 
-// -- Evaluate
+    /// ### minimax
+    ///
+    /// Perform minimax on a certain position, and get the minimum or maximum value
+    /// for a board. To get the best move, you minimize the values of the possible outcomes from your
+    /// own position, and maximize the values of the replies made by the other player.
+    ///
+    /// In other words, choose moves with the assumption that your opponent will make the
+    /// best possible replies to your moves. Moves that are seemingly good, but are easily countered,
+    /// are categorically eliminated by this algorithm.
+    fn minimax(
+        &self,
+        depth: i32,
+        mut alpha: f64,
+        mut beta: f64,
+        is_maximizing: bool,
+        getting_move_for: Color,
+        board_count: &mut u64,
+    ) -> f64 {
+        *board_count += 1;
 
-impl Evaluate for Board {
-    #[inline]
-    fn value_for(&self, ally_color: Color) -> f64 {
-        self.squares
-            .iter()
-            .map(|square| match square.get_piece() {
-                Some(piece) => {
-                    if piece.get_color() == ally_color {
-                        piece.get_weighted_value()
-                    } else {
-                        -piece.get_weighted_value()
-                    }
+        if depth == 0 {
+            return self.value_for(getting_move_for);
+        }
+
+        let legal_moves = self.get_legal_moves();
+        let mut best_move_value;
+
+        if is_maximizing {
+            best_move_value = -999999.0;
+
+            for m in &legal_moves {
+                let child_board_value = self.apply_move(*m).minimax(
+                    depth - 1,
+                    alpha,
+                    beta,
+                    !is_maximizing,
+                    getting_move_for,
+                    board_count,
+                );
+
+                if child_board_value > best_move_value {
+                    best_move_value = child_board_value;
                 }
-                None => 0.0,
-            })
-            .sum()
-    }
 
-    #[inline]
-    fn get_current_player_color(&self) -> Color {
-        self.turn
-    }
+                if best_move_value > alpha {
+                    alpha = best_move_value
+                }
 
-    #[inline]
-    fn apply_eval_move(&self, m: Move) -> Self {
-        self.apply_move(m).change_turn()
-    }
+                if beta <= alpha {
+                    return best_move_value;
+                }
+            }
+        } else {
+            best_move_value = 999999.0;
 
-    #[inline]
-    fn get_legal_moves(&self) -> Vec<Move> {
-        let mut result = vec![];
-        let color = self.get_current_player_color();
-        for square in &self.squares {
-            if let Some(piece) = square.get_piece() {
-                if piece.get_color() == color {
-                    result.extend(piece.get_legal_moves(self))
+            for m in &legal_moves {
+                let child_board_value = self.apply_move(*m).minimax(
+                    depth - 1,
+                    alpha,
+                    beta,
+                    !is_maximizing,
+                    getting_move_for,
+                    board_count,
+                );
+                if child_board_value < best_move_value {
+                    best_move_value = child_board_value;
+                }
+
+                if best_move_value < beta {
+                    beta = best_move_value
+                }
+
+                if beta <= alpha {
+                    return best_move_value;
                 }
             }
         }
 
-        result
-    }
-
-    #[inline]
-    fn get_piece_legal_moves(&self, pos: Position) -> Vec<Move> {
-        let color = self.get_current_player_color();
-        if let Some(piece) = self.get_piece(pos) {
-            if piece.get_color() == color {
-                return piece.get_legal_moves(self);
-            }
-        }
-        Vec::new()
+        best_move_value
     }
 }
 

@@ -145,7 +145,6 @@ mod test {
 
     use super::*;
     use crate::position::*;
-    use crate::Evaluate;
     use crate::{BLACK, WHITE};
 
     use pretty_assertions::assert_eq;
