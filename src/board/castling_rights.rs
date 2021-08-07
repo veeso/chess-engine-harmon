@@ -87,7 +87,7 @@ mod test {
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn test_board_castling_rights() {
+    fn castling_rights() {
         let mut rights: CastlingRights = CastlingRights::default();
         assert_eq!(rights.can_kingside_castle(), true);
         assert_eq!(rights.can_queenside_castle(), true);

@@ -53,7 +53,7 @@ mod test {
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn test_square() {
+    fn square() {
         // empty
         let square: Square = Square::empty();
         assert_eq!(square.is_empty(), true);

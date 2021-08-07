@@ -8,7 +8,7 @@
 //!
 //! - default chess
 //! - horde variant
-//! - Dunsany's chess (TODO:)
+//! - Dunsany's chess
 //!
 
 use super::{Color, Move, Piece, Position, Square, BLACK, WHITE};
@@ -78,10 +78,23 @@ impl Default for Board {
     }
 }
 
-// FIXME: should we use mutable references instead of all these copies?
-
 impl Board {
     // -- constructors
+
+    /// ### empty
+    ///
+    /// Create an empty Board
+    pub fn empty() -> Self {
+        Self {
+            squares: [Square::empty(); 64],
+            en_passant: None,
+
+            white_castling_rights: CastlingRights::default(),
+            black_castling_rights: CastlingRights::default(),
+
+            turn: WHITE,
+        }
+    }
 
     /// ### horde
     ///
@@ -99,28 +112,27 @@ impl Board {
             .build()
     }
 
-    /// ### empty
+    /// ### dunsany
     ///
-    /// Create an empty Board
-    pub fn empty() -> Self {
-        Self {
-            squares: [Square::empty(); 64],
-            en_passant: None,
-
-            white_castling_rights: CastlingRights::default(),
-            black_castling_rights: CastlingRights::default(),
-
-            turn: WHITE,
-        }
+    /// Create the default board for the dunsany's chess
+    /// <https://en.wikipedia.org/wiki/Dunsany%27s_chess>
+    pub fn dunsany() -> Self {
+        BoardBuilder::from(Board::default())
+            .row(Piece::Pawn(WHITE, A1))
+            .row(Piece::Pawn(WHITE, A2))
+            .row(Piece::Pawn(WHITE, A3))
+            .row(Piece::Pawn(WHITE, A4))
+            .build()
+            .change_turn() // NOTE: Black moves first
     }
 
     // -- getters
 
-    /// ### get_turn_color
+    /// ### get_turn
     ///
     /// Get the color of the current player
     #[inline]
-    pub fn get_turn_color(&self) -> Color {
+    pub fn get_turn(&self) -> Color {
         self.turn
     }
 
@@ -177,10 +189,12 @@ impl Board {
         king_pos
     }
 
+    /// ### get_legal_moves
+    ///
+    /// Returns the list of available moves for player with color `color`
     #[inline]
-    pub fn get_legal_moves(&self) -> Vec<Move> {
+    pub fn get_legal_moves(&self, color: Color) -> Vec<Move> {
         let mut result = vec![];
-        let color = self.get_turn_color();
         for square in &self.squares {
             if let Some(piece) = square.get_piece() {
                 if piece.get_color() == color {
@@ -192,13 +206,13 @@ impl Board {
         result
     }
 
+    /// ### get_piece_legal_moves
+    ///
+    /// Get legal moves for piece at `pos` position
     #[inline]
     pub fn get_piece_legal_moves(&self, pos: Position) -> Vec<Move> {
-        let color = self.get_turn_color();
         if let Some(piece) = self.get_piece(pos) {
-            if piece.get_color() == color {
-                return piece.get_legal_moves(self);
-            }
+            return piece.get_legal_moves(self);
         }
         Vec::new()
     }
@@ -230,7 +244,7 @@ impl Board {
     /// get rating for two players in percentage.
     /// First value is for white, second value is for black
     pub fn get_rating(&self, depth: usize) -> (f64, f64) {
-        let turn_color: Color = self.get_turn_color();
+        let turn_color: Color = self.get_turn();
         let (best_m, _, your_best_val) = self.get_best_next_move(depth);
         let (_, _, your_lowest_val) = self.get_worst_next_move(depth);
         let mut your_val = your_best_val + your_lowest_val;
@@ -441,6 +455,7 @@ impl Board {
             Move::Resign => true,
         }
     }
+
     /// ### has_sufficient_material
     ///
     /// Does the respective player have sufficient material?
@@ -493,7 +508,7 @@ impl Board {
     ///
     /// Is the current player in stalemate?
     pub fn is_stalemate(&self) -> bool {
-        (self.get_legal_moves().is_empty() && !self.is_in_check(self.get_turn_color()))
+        (self.get_legal_moves(self.get_turn()).is_empty() && !self.is_in_check(self.get_turn()))
             || (self.has_insufficient_material(self.turn)
                 && self.has_insufficient_material(!self.turn))
     }
@@ -502,7 +517,7 @@ impl Board {
     ///
     /// Is the current player in checkmate?
     pub fn is_checkmate(&self) -> bool {
-        self.is_in_check(self.get_turn_color()) && self.get_legal_moves().is_empty()
+        self.is_in_check(self.get_turn()) && self.get_legal_moves(self.get_turn()).is_empty()
     }
 
     // -- evaluation
@@ -520,11 +535,11 @@ impl Board {
     /// It's best not to use the rating value by itself for anything, as it
     /// is relative to the other player's move ratings as well.
     pub fn get_best_next_move(&self, depth: usize) -> (Move, u64, f64) {
-        let legal_moves = self.get_legal_moves();
+        let legal_moves = self.get_legal_moves(self.get_turn());
         let mut best_move_value = -999999.0;
         let mut best_move = Move::Resign;
 
-        let color = self.get_turn_color();
+        let color = self.get_turn();
 
         let mut board_count = 0;
         for m in &legal_moves {
@@ -558,11 +573,11 @@ impl Board {
     /// It's best not to use the rating value by itself for anything, as it
     /// is relative to the other player's move ratings as well.
     pub fn get_worst_next_move(&self, depth: usize) -> (Move, u64, f64) {
-        let legal_moves = self.get_legal_moves();
+        let legal_moves = self.get_legal_moves(self.get_turn());
         let mut best_move_value = -999999.0;
         let mut best_move = Move::Resign;
 
-        let color = self.get_turn_color();
+        let color = self.get_turn();
 
         let mut board_count = 0;
         for m in &legal_moves {
@@ -599,6 +614,16 @@ impl Board {
             }
         }
 
+        result
+    }
+
+    /// ### remove_piece
+    ///
+    /// Remove piece at `position`
+    /// Does nothing if square is empty
+    pub fn remove_piece(&self, position: Position) -> Self {
+        let mut result = *self;
+        *result.get_square(position) = Square::empty();
         result
     }
 
@@ -642,7 +667,7 @@ impl Board {
     /// Play a move and confirm it is legal.
     /// Panics if a promotion must be performed first
     pub fn play_move(&self, m: Move) -> MoveResult {
-        let current_color = self.get_turn_color();
+        let current_color = self.get_turn();
 
         // TODO: panic if promotion is available
         if m == Move::Resign {
@@ -824,7 +849,7 @@ impl Board {
             return self.get_player_value(getting_move_for);
         }
 
-        let legal_moves = self.get_legal_moves();
+        let legal_moves = self.get_legal_moves(self.get_turn());
         let mut best_move_value;
 
         if is_maximizing {
@@ -976,5 +1001,286 @@ impl core::fmt::Display for Board {
         }
 
         write!(f, "\n  ╚════════╝\n   {}\n", abc)
+    }
+}
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+    use crate::position::*;
+
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn default() {
+        let board: Board = Board::default();
+        // Black
+        assert_eq!(board.get_piece(A8).unwrap(), Piece::Rook(BLACK, A8));
+        assert_eq!(board.get_piece(B8).unwrap(), Piece::Knight(BLACK, B8));
+        assert_eq!(board.get_piece(C8).unwrap(), Piece::Bishop(BLACK, C8));
+        assert_eq!(board.get_piece(D8).unwrap(), Piece::Queen(BLACK, D8));
+        assert_eq!(board.get_piece(E8).unwrap(), Piece::King(BLACK, E8));
+        assert_eq!(board.get_piece(F8).unwrap(), Piece::Bishop(BLACK, F8));
+        assert_eq!(board.get_piece(G8).unwrap(), Piece::Knight(BLACK, G8));
+        assert_eq!(board.get_piece(H8).unwrap(), Piece::Rook(BLACK, H8));
+        assert_eq!(board.get_piece(A7).unwrap(), Piece::Pawn(BLACK, A7));
+        assert_eq!(board.get_piece(B7).unwrap(), Piece::Pawn(BLACK, B7));
+        assert_eq!(board.get_piece(C7).unwrap(), Piece::Pawn(BLACK, C7));
+        assert_eq!(board.get_piece(D7).unwrap(), Piece::Pawn(BLACK, D7));
+        assert_eq!(board.get_piece(E7).unwrap(), Piece::Pawn(BLACK, E7));
+        assert_eq!(board.get_piece(F7).unwrap(), Piece::Pawn(BLACK, F7));
+        assert_eq!(board.get_piece(G7).unwrap(), Piece::Pawn(BLACK, G7));
+        assert_eq!(board.get_piece(H7).unwrap(), Piece::Pawn(BLACK, H7));
+        // White
+        assert_eq!(board.get_piece(A2).unwrap(), Piece::Pawn(WHITE, A2));
+        assert_eq!(board.get_piece(B2).unwrap(), Piece::Pawn(WHITE, B2));
+        assert_eq!(board.get_piece(C2).unwrap(), Piece::Pawn(WHITE, C2));
+        assert_eq!(board.get_piece(D2).unwrap(), Piece::Pawn(WHITE, D2));
+        assert_eq!(board.get_piece(E2).unwrap(), Piece::Pawn(WHITE, E2));
+        assert_eq!(board.get_piece(F2).unwrap(), Piece::Pawn(WHITE, F2));
+        assert_eq!(board.get_piece(G2).unwrap(), Piece::Pawn(WHITE, G2));
+        assert_eq!(board.get_piece(H2).unwrap(), Piece::Pawn(WHITE, H2));
+        assert_eq!(board.get_piece(A1).unwrap(), Piece::Rook(WHITE, A1));
+        assert_eq!(board.get_piece(B1).unwrap(), Piece::Knight(WHITE, B1));
+        assert_eq!(board.get_piece(C1).unwrap(), Piece::Bishop(WHITE, C1));
+        assert_eq!(board.get_piece(D1).unwrap(), Piece::Queen(WHITE, D1));
+        assert_eq!(board.get_piece(E1).unwrap(), Piece::King(WHITE, E1));
+        assert_eq!(board.get_piece(F1).unwrap(), Piece::Bishop(WHITE, F1));
+        assert_eq!(board.get_piece(G1).unwrap(), Piece::Knight(WHITE, G1));
+        assert_eq!(board.get_piece(H1).unwrap(), Piece::Rook(WHITE, H1));
+        // Castling rights
+        assert_eq!(board.black_castling_rights.can_kingside_castle(), true);
+        assert_eq!(board.black_castling_rights.can_queenside_castle(), true);
+        assert_eq!(board.white_castling_rights.can_kingside_castle(), true);
+        assert_eq!(board.white_castling_rights.can_queenside_castle(), true);
+        // en passant
+        assert_eq!(board.en_passant, None);
+        // Turn
+        assert_eq!(board.turn, WHITE);
+    }
+
+    #[test]
+    fn empty() {
+        let board: Board = Board::empty();
+        // Castling rights
+        assert_eq!(board.black_castling_rights.can_kingside_castle(), true);
+        assert_eq!(board.black_castling_rights.can_queenside_castle(), true);
+        assert_eq!(board.white_castling_rights.can_kingside_castle(), true);
+        assert_eq!(board.white_castling_rights.can_queenside_castle(), true);
+        // en passant
+        assert_eq!(board.en_passant, None);
+        // Turn
+        assert_eq!(board.turn, WHITE);
+    }
+
+    #[test]
+    fn horde() {
+        let board: Board = Board::horde();
+        // Black
+        assert_eq!(board.get_piece(A8).unwrap(), Piece::Rook(BLACK, A8));
+        assert_eq!(board.get_piece(B8).unwrap(), Piece::Knight(BLACK, B8));
+        assert_eq!(board.get_piece(C8).unwrap(), Piece::Bishop(BLACK, C8));
+        assert_eq!(board.get_piece(D8).unwrap(), Piece::Queen(BLACK, D8));
+        assert_eq!(board.get_piece(E8).unwrap(), Piece::King(BLACK, E8));
+        assert_eq!(board.get_piece(F8).unwrap(), Piece::Bishop(BLACK, F8));
+        assert_eq!(board.get_piece(G8).unwrap(), Piece::Knight(BLACK, G8));
+        assert_eq!(board.get_piece(H8).unwrap(), Piece::Rook(BLACK, H8));
+        assert_eq!(board.get_piece(A7).unwrap(), Piece::Pawn(BLACK, A7));
+        assert_eq!(board.get_piece(B7).unwrap(), Piece::Pawn(BLACK, B7));
+        assert_eq!(board.get_piece(C7).unwrap(), Piece::Pawn(BLACK, C7));
+        assert_eq!(board.get_piece(D7).unwrap(), Piece::Pawn(BLACK, D7));
+        assert_eq!(board.get_piece(E7).unwrap(), Piece::Pawn(BLACK, E7));
+        assert_eq!(board.get_piece(F7).unwrap(), Piece::Pawn(BLACK, F7));
+        assert_eq!(board.get_piece(G7).unwrap(), Piece::Pawn(BLACK, G7));
+        assert_eq!(board.get_piece(H7).unwrap(), Piece::Pawn(BLACK, H7));
+        // White
+        assert_eq!(board.get_piece(A1).unwrap(), Piece::Pawn(WHITE, A1));
+        assert_eq!(board.get_piece(B1).unwrap(), Piece::Pawn(WHITE, B1));
+        assert_eq!(board.get_piece(C1).unwrap(), Piece::Pawn(WHITE, C1));
+        assert_eq!(board.get_piece(D1).unwrap(), Piece::Pawn(WHITE, D1));
+        assert_eq!(board.get_piece(E1).unwrap(), Piece::Pawn(WHITE, E1));
+        assert_eq!(board.get_piece(F1).unwrap(), Piece::Pawn(WHITE, F1));
+        assert_eq!(board.get_piece(G1).unwrap(), Piece::Pawn(WHITE, G1));
+        assert_eq!(board.get_piece(H1).unwrap(), Piece::Pawn(WHITE, H1));
+        assert_eq!(board.get_piece(A2).unwrap(), Piece::Pawn(WHITE, A2));
+        assert_eq!(board.get_piece(B2).unwrap(), Piece::Pawn(WHITE, B2));
+        assert_eq!(board.get_piece(C2).unwrap(), Piece::Pawn(WHITE, C2));
+        assert_eq!(board.get_piece(D2).unwrap(), Piece::Pawn(WHITE, D2));
+        assert_eq!(board.get_piece(E2).unwrap(), Piece::Pawn(WHITE, E2));
+        assert_eq!(board.get_piece(F2).unwrap(), Piece::Pawn(WHITE, F2));
+        assert_eq!(board.get_piece(G2).unwrap(), Piece::Pawn(WHITE, G2));
+        assert_eq!(board.get_piece(H2).unwrap(), Piece::Pawn(WHITE, H2));
+        assert_eq!(board.get_piece(A3).unwrap(), Piece::Pawn(WHITE, A3));
+        assert_eq!(board.get_piece(B3).unwrap(), Piece::Pawn(WHITE, B3));
+        assert_eq!(board.get_piece(C3).unwrap(), Piece::Pawn(WHITE, C3));
+        assert_eq!(board.get_piece(D3).unwrap(), Piece::Pawn(WHITE, D3));
+        assert_eq!(board.get_piece(E3).unwrap(), Piece::Pawn(WHITE, E3));
+        assert_eq!(board.get_piece(F3).unwrap(), Piece::Pawn(WHITE, F3));
+        assert_eq!(board.get_piece(G3).unwrap(), Piece::Pawn(WHITE, G3));
+        assert_eq!(board.get_piece(H3).unwrap(), Piece::Pawn(WHITE, H3));
+        assert_eq!(board.get_piece(A4).unwrap(), Piece::Pawn(WHITE, A4));
+        assert_eq!(board.get_piece(B4).unwrap(), Piece::Pawn(WHITE, B4));
+        assert_eq!(board.get_piece(C4).unwrap(), Piece::Pawn(WHITE, C4));
+        assert_eq!(board.get_piece(D4).unwrap(), Piece::Pawn(WHITE, D4));
+        assert_eq!(board.get_piece(E4).unwrap(), Piece::Pawn(WHITE, E4));
+        assert_eq!(board.get_piece(F4).unwrap(), Piece::Pawn(WHITE, F4));
+        assert_eq!(board.get_piece(G4).unwrap(), Piece::Pawn(WHITE, G4));
+        assert_eq!(board.get_piece(H4).unwrap(), Piece::Pawn(WHITE, H4));
+        assert_eq!(board.get_piece(F5).unwrap(), Piece::Pawn(WHITE, F5));
+        assert_eq!(board.get_piece(G5).unwrap(), Piece::Pawn(WHITE, G5));
+        assert_eq!(board.get_piece(B5).unwrap(), Piece::Pawn(WHITE, B5));
+        assert_eq!(board.get_piece(C5).unwrap(), Piece::Pawn(WHITE, C5));
+        // Castling rights
+        assert_eq!(board.black_castling_rights.can_kingside_castle(), true);
+        assert_eq!(board.black_castling_rights.can_queenside_castle(), true);
+        assert_eq!(board.white_castling_rights.can_kingside_castle(), true);
+        assert_eq!(board.white_castling_rights.can_queenside_castle(), true);
+        // en passant
+        assert_eq!(board.en_passant, None);
+        // Turn
+        assert_eq!(board.turn, WHITE);
+    }
+    #[test]
+    fn dunsany() {
+        let board: Board = Board::dunsany();
+        // Black
+        assert_eq!(board.get_piece(A8).unwrap(), Piece::Rook(BLACK, A8));
+        assert_eq!(board.get_piece(B8).unwrap(), Piece::Knight(BLACK, B8));
+        assert_eq!(board.get_piece(C8).unwrap(), Piece::Bishop(BLACK, C8));
+        assert_eq!(board.get_piece(D8).unwrap(), Piece::Queen(BLACK, D8));
+        assert_eq!(board.get_piece(E8).unwrap(), Piece::King(BLACK, E8));
+        assert_eq!(board.get_piece(F8).unwrap(), Piece::Bishop(BLACK, F8));
+        assert_eq!(board.get_piece(G8).unwrap(), Piece::Knight(BLACK, G8));
+        assert_eq!(board.get_piece(H8).unwrap(), Piece::Rook(BLACK, H8));
+        assert_eq!(board.get_piece(A7).unwrap(), Piece::Pawn(BLACK, A7));
+        assert_eq!(board.get_piece(B7).unwrap(), Piece::Pawn(BLACK, B7));
+        assert_eq!(board.get_piece(C7).unwrap(), Piece::Pawn(BLACK, C7));
+        assert_eq!(board.get_piece(D7).unwrap(), Piece::Pawn(BLACK, D7));
+        assert_eq!(board.get_piece(E7).unwrap(), Piece::Pawn(BLACK, E7));
+        assert_eq!(board.get_piece(F7).unwrap(), Piece::Pawn(BLACK, F7));
+        assert_eq!(board.get_piece(G7).unwrap(), Piece::Pawn(BLACK, G7));
+        assert_eq!(board.get_piece(H7).unwrap(), Piece::Pawn(BLACK, H7));
+        // White
+        assert_eq!(board.get_piece(A1).unwrap(), Piece::Pawn(WHITE, A1));
+        assert_eq!(board.get_piece(B1).unwrap(), Piece::Pawn(WHITE, B1));
+        assert_eq!(board.get_piece(C1).unwrap(), Piece::Pawn(WHITE, C1));
+        assert_eq!(board.get_piece(D1).unwrap(), Piece::Pawn(WHITE, D1));
+        assert_eq!(board.get_piece(E1).unwrap(), Piece::Pawn(WHITE, E1));
+        assert_eq!(board.get_piece(F1).unwrap(), Piece::Pawn(WHITE, F1));
+        assert_eq!(board.get_piece(G1).unwrap(), Piece::Pawn(WHITE, G1));
+        assert_eq!(board.get_piece(H1).unwrap(), Piece::Pawn(WHITE, H1));
+        assert_eq!(board.get_piece(A2).unwrap(), Piece::Pawn(WHITE, A2));
+        assert_eq!(board.get_piece(B2).unwrap(), Piece::Pawn(WHITE, B2));
+        assert_eq!(board.get_piece(C2).unwrap(), Piece::Pawn(WHITE, C2));
+        assert_eq!(board.get_piece(D2).unwrap(), Piece::Pawn(WHITE, D2));
+        assert_eq!(board.get_piece(E2).unwrap(), Piece::Pawn(WHITE, E2));
+        assert_eq!(board.get_piece(F2).unwrap(), Piece::Pawn(WHITE, F2));
+        assert_eq!(board.get_piece(G2).unwrap(), Piece::Pawn(WHITE, G2));
+        assert_eq!(board.get_piece(H2).unwrap(), Piece::Pawn(WHITE, H2));
+        assert_eq!(board.get_piece(A3).unwrap(), Piece::Pawn(WHITE, A3));
+        assert_eq!(board.get_piece(B3).unwrap(), Piece::Pawn(WHITE, B3));
+        assert_eq!(board.get_piece(C3).unwrap(), Piece::Pawn(WHITE, C3));
+        assert_eq!(board.get_piece(D3).unwrap(), Piece::Pawn(WHITE, D3));
+        assert_eq!(board.get_piece(E3).unwrap(), Piece::Pawn(WHITE, E3));
+        assert_eq!(board.get_piece(F3).unwrap(), Piece::Pawn(WHITE, F3));
+        assert_eq!(board.get_piece(G3).unwrap(), Piece::Pawn(WHITE, G3));
+        assert_eq!(board.get_piece(H3).unwrap(), Piece::Pawn(WHITE, H3));
+        assert_eq!(board.get_piece(A4).unwrap(), Piece::Pawn(WHITE, A4));
+        assert_eq!(board.get_piece(B4).unwrap(), Piece::Pawn(WHITE, B4));
+        assert_eq!(board.get_piece(C4).unwrap(), Piece::Pawn(WHITE, C4));
+        assert_eq!(board.get_piece(D4).unwrap(), Piece::Pawn(WHITE, D4));
+        assert_eq!(board.get_piece(E4).unwrap(), Piece::Pawn(WHITE, E4));
+        assert_eq!(board.get_piece(F4).unwrap(), Piece::Pawn(WHITE, F4));
+        assert_eq!(board.get_piece(G4).unwrap(), Piece::Pawn(WHITE, G4));
+        assert_eq!(board.get_piece(H4).unwrap(), Piece::Pawn(WHITE, H4));
+        // Castling rights
+        assert_eq!(board.black_castling_rights.can_kingside_castle(), true);
+        assert_eq!(board.black_castling_rights.can_queenside_castle(), true);
+        assert_eq!(board.white_castling_rights.can_kingside_castle(), true);
+        assert_eq!(board.white_castling_rights.can_queenside_castle(), true);
+        // en passant
+        assert_eq!(board.en_passant, None);
+        // Turn
+        assert_eq!(board.turn, BLACK);
+    }
+
+    #[test]
+    fn get_turn() {
+        let board: Board = Board::default();
+        assert_eq!(board.get_turn(), WHITE);
+        let board: Board = Board::dunsany();
+        assert_eq!(board.get_turn(), BLACK);
+    }
+
+    #[test]
+    fn get_en_passant() {
+        let mut board: Board = Board::default();
+        assert_eq!(board.get_en_passant(), None);
+        board.en_passant = Some(E6);
+        assert_eq!(board.get_en_passant().unwrap(), E6);
+    }
+
+    #[test]
+    fn get_material_advantage() {
+        let board: Board = Board::default();
+        // Even
+        assert_eq!(board.get_material_advantage(WHITE), 0);
+        assert_eq!(board.get_material_advantage(BLACK), 0);
+        // Take a pawn
+        let board: Board = board.remove_piece(E7);
+        assert_eq!(board.get_material_advantage(WHITE), 1);
+        assert_eq!(board.get_material_advantage(BLACK), -1);
+        // Take queen
+        let board: Board = board.remove_piece(D1);
+        assert_eq!(board.get_material_advantage(WHITE), -8);
+        assert_eq!(board.get_material_advantage(BLACK), 8);
+    }
+
+    #[test]
+    fn get_piece() {
+        let board: Board = Board::default();
+        assert_eq!(board.get_piece(D1).unwrap(), Piece::Queen(WHITE, D1));
+        assert_eq!(board.get_piece(D3), None);
+    }
+
+    #[test]
+    fn get_king_position() {
+        let board: Board = Board::horde();
+        assert_eq!(board.get_king_pos(BLACK).unwrap(), E8);
+        assert_eq!(board.get_king_pos(WHITE), None);
+    }
+
+    #[test]
+    fn get_legal_moves() {
+        let board: Board = Board::default();
+        // Get moves at start
+        assert_eq!(
+            board.get_legal_moves(WHITE),
+            vec![
+                // pawns
+                Move::Piece(A2, A4),
+                Move::Piece(A2, A3),
+                Move::Piece(B2, B4),
+                Move::Piece(B2, B3),
+                Move::Piece(C2, C4),
+                Move::Piece(C2, C3),
+                Move::Piece(D2, D4),
+                Move::Piece(D2, D3),
+                Move::Piece(E2, E4),
+                Move::Piece(E2, E3),
+                Move::Piece(F2, F4),
+                Move::Piece(F2, F3),
+                Move::Piece(G2, G4),
+                Move::Piece(G2, G3),
+                Move::Piece(H2, H4),
+                Move::Piece(H2, H3),
+                // Knights
+                Move::Piece(B1, A3),
+                Move::Piece(B1, C3),
+                Move::Piece(G1, F3),
+                Move::Piece(G1, H3),
+            ]
+        );
     }
 }

@@ -34,7 +34,7 @@ pub enum EndGame {
     /// One player, the victor, checkmated the other.
     /// This stores the color of the winner.
     Victory(Color),
-    /// The game is drawn. There are 3 conditions where this can happen:
+    /// The game is draw. There are 3 conditions where this can happen:
     ///
     /// 1. The current player has no legal moves and not being in check
     /// 2. both players have insufficient material on the board.
@@ -47,7 +47,7 @@ pub enum EndGame {
     ///     5. The player only has a king and two bishops
     ///
     /// 3. Threefold repetition. The same moves are played for 3 turns
-    Stalemate,
+    Draw,
 }
 
 impl From<MoveResult> for GameResult {
@@ -56,7 +56,7 @@ impl From<MoveResult> for GameResult {
             MoveResult::Continuing(_) => GameResult::Continuing,
             MoveResult::Promote(_, pos) => GameResult::Promote(pos),
             MoveResult::IllegalMove(m) => GameResult::IllegalMove(m),
-            MoveResult::Stalemate => GameResult::Ended(EndGame::Stalemate),
+            MoveResult::Stalemate => GameResult::Ended(EndGame::Draw),
             MoveResult::Victory(color) => GameResult::Ended(EndGame::Victory(color)),
         }
     }

@@ -504,7 +504,7 @@ mod test {
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn test_position_new() {
+    fn new() {
         let position: Position = Position::new(0, 4);
         assert_eq!(position.row, 0);
         assert_eq!(position.col, 4);
@@ -525,23 +525,23 @@ mod test {
     }
 
     #[test]
-    fn test_position_getters() {
+    fn getters() {
         assert_eq!(D5.get_col(), 3);
         assert_eq!(D5.get_row(), 4);
     }
 
     #[test]
-    fn test_position_add_col() {
+    fn add_col() {
         assert_eq!(D5.add_col(2), F5);
     }
 
     #[test]
-    fn test_position_add_row() {
+    fn add_row() {
         assert_eq!(A2.add_row(3), A5);
     }
 
     #[test]
-    fn test_position_is_diagonal_to() {
+    fn is_diagonal_to() {
         assert_eq!(A2.is_diagonal_to(E6), true);
         assert_eq!(A2.is_diagonal_to(F7), true);
         assert_eq!(H1.is_diagonal_to(A8), true);
@@ -550,7 +550,7 @@ mod test {
     }
 
     #[test]
-    fn test_position_diagonal_distance() {
+    fn diagonal_distance() {
         assert_eq!(A2.diagonal_distance(E6), 4);
         assert_eq!(C3.diagonal_distance(Position::new(-1, -1)), 3); // Negative distance
         assert_eq!(
@@ -560,14 +560,14 @@ mod test {
     }
 
     #[test]
-    fn test_position_is_orthogonal() {
+    fn is_orthogonal() {
         assert_eq!(A2.is_orthogonal_to(A6), true);
         assert_eq!(A2.is_orthogonal_to(F2), true);
         assert_eq!(A2.is_orthogonal_to(C8), false);
     }
 
     #[test]
-    fn test_position_orthogonal_distance() {
+    fn orthogonal_distance() {
         assert_eq!(A2.orthogonal_distance(A6), 4);
         assert_eq!(A2.orthogonal_distance(F2), 5);
         assert_eq!(
@@ -577,7 +577,7 @@ mod test {
     }
 
     #[test]
-    fn test_position_is_adjacent_to() {
+    fn is_adjacent_to() {
         assert_eq!(D4.is_adjacent_to(C3), true);
         assert_eq!(D4.is_adjacent_to(C4), true);
         assert_eq!(D4.is_adjacent_to(C5), true);
@@ -590,7 +590,7 @@ mod test {
     }
 
     #[test]
-    fn test_position_is_below() {
+    fn is_below() {
         assert_eq!(D4.is_below(D5), true);
         assert_eq!(D4.is_below(D8), true);
         assert_eq!(D4.is_below(G8), true);
@@ -599,7 +599,7 @@ mod test {
     }
 
     #[test]
-    fn test_position_is_above() {
+    fn is_above() {
         assert_eq!(D4.is_above(D2), true);
         assert_eq!(D4.is_above(A1), true);
         assert_eq!(D4.is_above(G3), true);
@@ -608,7 +608,7 @@ mod test {
     }
 
     #[test]
-    fn test_position_is_left_of() {
+    fn is_left_of() {
         assert_eq!(D4.is_left_of(F4), true);
         assert_eq!(D4.is_left_of(E8), true);
         assert_eq!(D4.is_left_of(D6), false);
@@ -617,7 +617,7 @@ mod test {
     }
 
     #[test]
-    fn test_position_is_right_of() {
+    fn is_right_of() {
         assert_eq!(D4.is_right_of(C4), true);
         assert_eq!(D4.is_right_of(C1), true);
         assert_eq!(D4.is_right_of(D7), false);
@@ -626,39 +626,39 @@ mod test {
     }
 
     #[test]
-    fn test_position_next_below() {
+    fn next_below() {
         assert_eq!(D4.next_below(), D3);
     }
 
     #[test]
-    fn test_position_next_above() {
+    fn next_above() {
         assert_eq!(D4.next_above(), D5);
     }
 
     #[test]
-    fn test_position_pawn_up() {
+    fn pawn_up() {
         assert_eq!(D2.pawn_up(WHITE), D3);
         assert_eq!(D7.pawn_up(BLACK), D6);
     }
 
     #[test]
-    fn test_position_pawn_back() {
+    fn pawn_back() {
         assert_eq!(D3.pawn_back(WHITE), D2);
         assert_eq!(D6.pawn_back(BLACK), D7);
     }
 
     #[test]
-    fn test_position_next_left() {
+    fn next_left() {
         assert_eq!(D3.next_left(), C3);
     }
 
     #[test]
-    fn test_position_next_right() {
+    fn next_right() {
         assert_eq!(D3.next_right(), E3);
     }
 
     #[test]
-    fn test_position_is_starting_pawn() {
+    fn is_starting_pawn() {
         assert_eq!(A2.is_starting_pawn(WHITE), true);
         assert_eq!(B2.is_starting_pawn(WHITE), true);
         assert_eq!(C2.is_starting_pawn(WHITE), true);
@@ -681,7 +681,7 @@ mod test {
     }
 
     #[test]
-    fn test_position_is_kingside_rook() {
+    fn is_kingside_rook() {
         assert_eq!(H1.is_kingside_rook(WHITE), true);
         assert_eq!(H1.is_kingside_rook(BLACK), false);
         assert_eq!(H8.is_kingside_rook(WHITE), false);
@@ -689,7 +689,7 @@ mod test {
     }
 
     #[test]
-    fn test_position_is_queenside_rook() {
+    fn is_queenside_rook() {
         assert_eq!(A1.is_queenside_rook(WHITE), true);
         assert_eq!(A1.is_queenside_rook(BLACK), false);
         assert_eq!(A8.is_queenside_rook(WHITE), false);
@@ -697,7 +697,7 @@ mod test {
     }
 
     #[test]
-    fn test_position_diagonals_to() {
+    fn diagonals_to() {
         assert_eq!(D4.diagonals_to(H8), vec![E5, F6, G7, H8]);
         assert_eq!(G8.diagonals_to(B3), vec![F7, E6, D5, C4, B3]);
         assert_eq!(A7.diagonals_to(F2), vec![B6, C5, D4, E3, F2]);
@@ -706,7 +706,7 @@ mod test {
     }
 
     #[test]
-    fn test_position_orthogonals_to() {
+    fn orthogonals_to() {
         assert_eq!(D4.orthogonals_to(H4), vec![E4, F4, G4, H4]);
         assert_eq!(A1.orthogonals_to(H1), vec![B1, C1, D1, E1, F1, G1, H1]);
         assert_eq!(B1.orthogonals_to(B8), vec![B2, B3, B4, B5, B6, B7, B8]);
@@ -715,7 +715,7 @@ mod test {
     }
 
     #[test]
-    fn test_position_on_off_board() {
+    fn on_off_board() {
         // -- on board
         assert_eq!(A4.is_on_board(), true);
         assert_eq!(A4.is_off_board(), false);
@@ -735,7 +735,7 @@ mod test {
     }
 
     #[test]
-    fn test_position_knight_move() {
+    fn knight_move() {
         // Knight at d5; moves are b6, c3, e7, f6, f4, e3, c3, b4
         assert_eq!(D5.is_knight_move(B6), true);
         assert_eq!(D5.is_knight_move(C3), true);

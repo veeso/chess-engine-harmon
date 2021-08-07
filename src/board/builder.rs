@@ -150,9 +150,10 @@ mod test {
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn test_board_builder_default() {
+    fn default() {
         let builder: BoardBuilder = BoardBuilder::default();
-        assert_eq!(builder.board.get_legal_moves().is_empty(), true);
+        assert_eq!(builder.board.get_legal_moves(WHITE).is_empty(), true);
+        assert_eq!(builder.board.get_legal_moves(BLACK).is_empty(), true);
         assert_eq!(
             builder.board.black_castling_rights.can_kingside_castle(),
             false
@@ -172,9 +173,10 @@ mod test {
     }
 
     #[test]
-    fn test_board_builder_from() {
+    fn from() {
         let builder: BoardBuilder = BoardBuilder::from(Board::default());
-        assert_eq!(builder.board.get_legal_moves().len(), 20); // You have 20 available moves at the beginning
+        assert_eq!(builder.board.get_legal_moves(WHITE).len(), 20); // You have 20 available moves at the beginning
+        assert_eq!(builder.board.get_legal_moves(BLACK).len(), 20); // You have 20 available moves at the beginning
         assert_eq!(
             builder.board.black_castling_rights.can_kingside_castle(),
             true
@@ -194,7 +196,7 @@ mod test {
     }
 
     #[test]
-    fn test_board_builder_row() {
+    fn row() {
         let board: Board = BoardBuilder::default().row(Piece::Queen(WHITE, A1)).build();
         assert_eq!(board.get_piece(A1).unwrap(), Piece::Queen(WHITE, A1));
         assert_eq!(board.get_piece(B1).unwrap(), Piece::Queen(WHITE, B1));
@@ -207,7 +209,7 @@ mod test {
     }
 
     #[test]
-    fn test_board_builder_col() {
+    fn col() {
         let board: Board = BoardBuilder::default()
             .column(Piece::Queen(WHITE, A1))
             .build();
@@ -222,7 +224,7 @@ mod test {
     }
 
     #[test]
-    fn test_board_builder_piece() {
+    fn piece() {
         let board: Board = BoardBuilder::default()
             .piece(Piece::Rook(WHITE, A1))
             .piece(Piece::Rook(BLACK, H8))
@@ -232,7 +234,7 @@ mod test {
     }
 
     #[test]
-    fn test_board_builder_castling_rights() {
+    fn castling_rights() {
         // all
         let board: Board = BoardBuilder::default().enable_castling().build();
         assert_eq!(board.black_castling_rights.can_kingside_castle(), true);

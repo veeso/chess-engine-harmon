@@ -797,7 +797,7 @@ mod test {
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn test_piece_get_name() {
+    fn get_name() {
         assert_eq!(Piece::Bishop(WHITE, A1).get_name(), "bishop");
         assert_eq!(Piece::King(WHITE, A1).get_name(), "king");
         assert_eq!(Piece::Knight(WHITE, A1).get_name(), "knight");
@@ -807,7 +807,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_color() {
+    fn get_color() {
         assert_eq!(Piece::Bishop(WHITE, A1).get_color(), WHITE);
         assert_eq!(Piece::King(BLACK, A1).get_color(), BLACK);
         assert_eq!(Piece::Knight(WHITE, A1).get_color(), WHITE);
@@ -817,7 +817,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_pos() {
+    fn get_pos() {
         assert_eq!(Piece::Bishop(WHITE, D4).get_pos(), D4);
         assert_eq!(Piece::King(BLACK, D4).get_pos(), D4);
         assert_eq!(Piece::Knight(WHITE, D4).get_pos(), D4);
@@ -827,7 +827,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_material_value() {
+    fn get_material_value() {
         assert_eq!(Piece::Bishop(WHITE, D4).get_material_value(), 3);
         assert_eq!(Piece::King(BLACK, D4).get_material_value(), 99999);
         assert_eq!(Piece::Knight(WHITE, D4).get_material_value(), 3);
@@ -837,7 +837,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_weighted_value() {
+    fn get_weighted_value() {
         assert_eq!(Piece::Bishop(WHITE, C2).get_weighted_value(), 30.0);
         assert_eq!(Piece::Bishop(BLACK, C2).get_weighted_value(), 30.0);
         assert_eq!(Piece::King(WHITE, D4).get_weighted_value(), 999986.0);
@@ -853,43 +853,43 @@ mod test {
     }
 
     #[test]
-    fn test_piece_is_king() {
+    fn is_king() {
         assert_eq!(Piece::King(WHITE, D4).is_king(), true);
         assert_eq!(Piece::Bishop(BLACK, C2).is_king(), false);
     }
 
     #[test]
-    fn test_piece_is_queen() {
+    fn is_queen() {
         assert_eq!(Piece::Queen(WHITE, D4).is_queen(), true);
         assert_eq!(Piece::Bishop(BLACK, C2).is_queen(), false);
     }
 
     #[test]
-    fn test_piece_is_rook() {
+    fn is_rook() {
         assert_eq!(Piece::Rook(WHITE, D4).is_rook(), true);
         assert_eq!(Piece::Bishop(BLACK, C2).is_rook(), false);
     }
 
     #[test]
-    fn test_piece_is_bishop() {
+    fn is_bishop() {
         assert_eq!(Piece::Bishop(BLACK, C2).is_bishop(), true);
         assert_eq!(Piece::Rook(WHITE, D4).is_bishop(), false);
     }
 
     #[test]
-    fn test_piece_is_pawn() {
+    fn is_pawn() {
         assert_eq!(Piece::Pawn(BLACK, C2).is_pawn(), true);
         assert_eq!(Piece::Rook(WHITE, D4).is_pawn(), false);
     }
 
     #[test]
-    fn test_piece_is_knight() {
+    fn is_knight() {
         assert_eq!(Piece::Knight(BLACK, C2).is_knight(), true);
         assert_eq!(Piece::Rook(WHITE, D4).is_knight(), false);
     }
 
     #[test]
-    fn test_piece_is_starting_pawn() {
+    fn is_starting_pawn() {
         // White pawns
         assert_eq!(Piece::Pawn(WHITE, B2).is_starting_pawn(), true);
         assert_eq!(Piece::Pawn(WHITE, C2).is_starting_pawn(), true);
@@ -906,7 +906,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_is_queenside_rook() {
+    fn is_queenside_rook() {
         assert_eq!(Piece::Rook(WHITE, A1).is_queenside_rook(), true);
         assert_eq!(Piece::Rook(BLACK, A8).is_queenside_rook(), true);
         assert_eq!(Piece::Rook(BLACK, A1).is_queenside_rook(), false);
@@ -914,7 +914,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_is_kingside_rook() {
+    fn is_kingside_rook() {
         assert_eq!(Piece::Rook(WHITE, H1).is_kingside_rook(), true);
         assert_eq!(Piece::Rook(BLACK, H8).is_kingside_rook(), true);
         assert_eq!(Piece::Rook(BLACK, H1).is_kingside_rook(), false);
@@ -922,12 +922,12 @@ mod test {
     }
 
     #[test]
-    fn test_piece_move_to() {
+    fn move_to() {
         assert_eq!(Piece::Rook(WHITE, H1).move_to(H8), Piece::Rook(WHITE, H8));
     }
 
     #[test]
-    fn test_piece_with_color() {
+    fn with_color() {
         assert_eq!(
             Piece::Rook(WHITE, H1).with_color(BLACK),
             Piece::Rook(BLACK, H1)
@@ -935,7 +935,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_pawn_legal_moves_starting_position() {
+    fn get_pawn_legal_moves_starting_position() {
         // Starting pawn (white)
         assert_eq!(
             Piece::Pawn(WHITE, E2).get_legal_moves(&Board::default()),
@@ -949,7 +949,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_pawn_legal_moves_last_position() {
+    fn get_pawn_legal_moves_last_position() {
         // Starting pawn (white)
         let board: Board = BoardBuilder::default()
             .enable_castling()
@@ -962,7 +962,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_pawn_legal_moves_already_moved() {
+    fn get_pawn_legal_moves_already_moved() {
         // Not starting position pawn
         let board: Board = BoardBuilder::default()
             .enable_castling()
@@ -975,7 +975,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_pawn_legal_moves_can_take() {
+    fn get_pawn_legal_moves_can_take() {
         // Can take pawn (white)
         let board: Board = BoardBuilder::default()
             .enable_castling()
@@ -1009,7 +1009,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_pawn_legal_moves_opposite() {
+    fn get_pawn_legal_moves_opposite() {
         // Opposite pawn
         let board: Board = BoardBuilder::default()
             .enable_castling()
@@ -1021,7 +1021,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_pawn_legal_moves_en_passant() {
+    fn get_pawn_legal_moves_en_passant() {
         // En passant - edge case 😈
         let mut board: Board = Board::default();
         if let MoveResult::Continuing(next_board) = board.play_move(Move::Piece(E2, E4)) {
@@ -1050,7 +1050,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_pawn_legal_moves_discovered_check() {
+    fn get_pawn_legal_moves_discovered_check() {
         // Discovered check by rook
         let board: Board = BoardBuilder::default()
             .enable_castling()
@@ -1066,7 +1066,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_king_legal_moves_starting_position() {
+    fn get_king_legal_moves_starting_position() {
         // King without free squares
         assert_eq!(
             Piece::King(WHITE, E1).get_legal_moves(&Board::default()),
@@ -1079,7 +1079,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_king_legal_moves_free_squares() {
+    fn get_king_legal_moves_free_squares() {
         // King in the middle of the board, no threatened
         let board: Board = BoardBuilder::default()
             .enable_castling()
@@ -1101,7 +1101,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_king_legal_moves_rook_on_left() {
+    fn get_king_legal_moves_rook_on_left() {
         // King in the middle of the board, rook on the left
         let board: Board = BoardBuilder::default()
             .enable_castling()
@@ -1121,7 +1121,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_king_legal_moves_rook_on_left_can_take() {
+    fn get_king_legal_moves_rook_on_left_can_take() {
         // King in the middle of the board, rook on the left, can take rook
         let board: Board = BoardBuilder::default()
             .enable_castling()
@@ -1141,7 +1141,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_king_legal_moves_protected_rook_check() {
+    fn get_king_legal_moves_protected_rook_check() {
         // King, checked by a protected rook on the left
         let board: Board = BoardBuilder::default()
             .enable_castling()
@@ -1161,7 +1161,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_king_legal_moves_castling() {
+    fn get_king_legal_moves_castling() {
         // Kingside Castling (giuoco piano)
         let mut board: Board = Board::default();
         if let MoveResult::Continuing(next_board) = board.play_move(Move::Piece(E2, E4)) {
@@ -1253,7 +1253,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_king_legal_moves_check_mate() {
+    fn get_king_legal_moves_check_mate() {
         let board: Board = BoardBuilder::default()
             .enable_castling()
             .piece(Piece::King(WHITE, E1))
@@ -1264,7 +1264,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_queen_legal_moves_free() {
+    fn get_queen_legal_moves_free() {
         let board: Board = BoardBuilder::default()
             .enable_castling()
             .piece(Piece::Queen(WHITE, E4))
@@ -1304,7 +1304,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_queen_legal_moves_blocked() {
+    fn get_queen_legal_moves_blocked() {
         assert_eq!(
             Piece::Queen(WHITE, D1).get_legal_moves(&Board::default()),
             vec![]
@@ -1316,7 +1316,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_queen_legal_moves_piece_on_diagonal() {
+    fn get_queen_legal_moves_piece_on_diagonal() {
         let board: Board = BoardBuilder::default()
             .enable_castling()
             .piece(Piece::Queen(WHITE, D4))
@@ -1351,7 +1351,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_queen_legal_moves_piece_on_line() {
+    fn get_queen_legal_moves_piece_on_line() {
         let board: Board = BoardBuilder::default()
             .enable_castling()
             .piece(Piece::Queen(WHITE, E4))
@@ -1390,7 +1390,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_queen_legal_moves_piece_on_column() {
+    fn get_queen_legal_moves_piece_on_column() {
         let board: Board = BoardBuilder::default()
             .enable_castling()
             .piece(Piece::Queen(WHITE, E4))
@@ -1429,7 +1429,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_queen_legal_moves_discovered_check() {
+    fn get_queen_legal_moves_discovered_check() {
         let board: Board = BoardBuilder::default()
             .enable_castling()
             .piece(Piece::Queen(WHITE, E4))
@@ -1450,7 +1450,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_rook_legal_moves_free() {
+    fn get_rook_legal_moves_free() {
         let board: Board = BoardBuilder::default()
             .enable_castling()
             .piece(Piece::Rook(WHITE, E4))
@@ -1477,7 +1477,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_rook_legal_moves_blocked() {
+    fn get_rook_legal_moves_blocked() {
         assert_eq!(
             Piece::Rook(WHITE, A1).get_legal_moves(&Board::default()),
             vec![]
@@ -1489,7 +1489,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_rook_legal_moves_piece_on_col() {
+    fn get_rook_legal_moves_piece_on_col() {
         let board: Board = BoardBuilder::default()
             .enable_castling()
             .piece(Piece::Rook(WHITE, E4))
@@ -1515,7 +1515,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_rook_legal_moves_piece_on_row() {
+    fn get_rook_legal_moves_piece_on_row() {
         let board: Board = BoardBuilder::default()
             .enable_castling()
             .piece(Piece::Rook(WHITE, E4))
@@ -1541,7 +1541,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_rook_legal_moves_discovered_check() {
+    fn get_rook_legal_moves_discovered_check() {
         let board: Board = BoardBuilder::default()
             .enable_castling()
             .piece(Piece::Rook(WHITE, E4))
@@ -1561,7 +1561,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_bishop_legal_moves_free() {
+    fn get_bishop_legal_moves_free() {
         let board: Board = BoardBuilder::default()
             .enable_castling()
             .piece(Piece::Bishop(WHITE, E4))
@@ -1586,7 +1586,7 @@ mod test {
         );
     }
     #[test]
-    fn test_piece_get_bishop_legal_moves_blocked() {
+    fn get_bishop_legal_moves_blocked() {
         assert_eq!(
             Piece::Bishop(WHITE, C1).get_legal_moves(&Board::default()),
             vec![]
@@ -1598,7 +1598,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_bishop_legal_moves_piece_on_diagonal() {
+    fn get_bishop_legal_moves_piece_on_diagonal() {
         let board: Board = BoardBuilder::default()
             .enable_castling()
             .piece(Piece::Bishop(WHITE, E4))
@@ -1623,7 +1623,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_bishop_legal_moves_discovered_check() {
+    fn get_bishop_legal_moves_discovered_check() {
         let board: Board = BoardBuilder::default()
             .enable_castling()
             .piece(Piece::Bishop(WHITE, E4))
@@ -1641,7 +1641,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_knight_legal_moves_free() {
+    fn get_knight_legal_moves_free() {
         let board: Board = BoardBuilder::default()
             .enable_castling()
             .piece(Piece::Knight(WHITE, E4))
@@ -1662,7 +1662,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_knight_legal_moves_busy() {
+    fn get_knight_legal_moves_busy() {
         let board: Board = BoardBuilder::default()
             .enable_castling()
             .piece(Piece::Knight(WHITE, E4))
@@ -1684,7 +1684,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_get_knight_legal_moves_discovered_check() {
+    fn get_knight_legal_moves_discovered_check() {
         let board: Board = BoardBuilder::default()
             .enable_castling()
             .piece(Piece::Knight(WHITE, E4))
@@ -1695,7 +1695,7 @@ mod test {
     }
 
     #[test]
-    fn test_piece_fmt() {
+    fn fmt() {
         assert_eq!(Piece::Bishop(WHITE, A1).to_string(), "♗");
         assert_eq!(Piece::Bishop(BLACK, A1).to_string(), "♝");
         assert_eq!(Piece::King(WHITE, A1).to_string(), "♔");

@@ -41,7 +41,7 @@
 //!     let worst_move = board.get_worst_next_move(3);
 //!
 //!     // Get all of the possible legal moves for the given player
-//!     let legal_moves = board.get_legal_moves();
+//!     let legal_moves = board.get_legal_moves(board.get_turn());
 //!     // Print the board
 //!     println!("{}", board);
 //!
@@ -229,7 +229,7 @@ mod test {
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn test_fmt_color() {
+    fn fmt_color() {
         assert_eq!(BLACK.to_string(), "Black");
         assert_eq!(WHITE.to_string(), "White");
     }
