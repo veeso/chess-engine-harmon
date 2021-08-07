@@ -174,6 +174,18 @@ impl Board {
         self.squares[((7 - pos.get_row()) * 8 + pos.get_col()) as usize].get_piece()
     }
 
+    /// ### get_player_pieces
+    ///
+    /// Get player pieces
+    pub fn get_player_pieces(&self, color: Color) -> Vec<Piece> {
+        self.squares
+            .iter()
+            .map(|x| x.get_piece())
+            .flatten()
+            .filter(|x| x.get_color() == color)
+            .collect()
+    }
+
     /// ### get_king_pos
     ///
     /// If there is a king on the board, return the position that it sits on.
@@ -473,15 +485,8 @@ impl Board {
     /// 5. The player only has a king and two bishops
     ///
     pub fn has_sufficient_material(&self, color: Color) -> bool {
-        let mut pieces = vec![];
-        for square in &self.squares {
-            if let Some(piece) = square.get_piece() {
-                if piece.get_color() == color {
-                    pieces.push(piece);
-                }
-            }
-        }
-
+        // Get and sort player pieces
+        let mut pieces = self.get_player_pieces(color);
         pieces.sort();
 
         !(pieces.is_empty()
@@ -1248,6 +1253,19 @@ mod test {
         let board: Board = Board::default();
         assert_eq!(board.get_piece(D1).unwrap(), Piece::Queen(WHITE, D1));
         assert_eq!(board.get_piece(D3), None);
+    }
+
+    #[test]
+    fn get_player_pieces() {
+        let board: Board = BoardBuilder::default()
+            .piece(Piece::Queen(WHITE, D1))
+            .piece(Piece::Bishop(WHITE, D3))
+            .piece(Piece::King(BLACK, E8))
+            .build();
+        assert_eq!(
+            board.get_player_pieces(WHITE),
+            vec![Piece::Bishop(WHITE, D3), Piece::Queen(WHITE, D1)]
+        );
     }
 
     #[test]
