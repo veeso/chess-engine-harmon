@@ -10,7 +10,7 @@
 //!
 
 use super::{Color, BLACK, WHITE};
-use alloc::vec::Vec;
+use alloc::{str::FromStr, string::String, vec::Vec};
 
 // -- alias
 
@@ -496,6 +496,38 @@ impl Position {
     }
 }
 
+impl FromStr for Position {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // Check string length
+        if s.len() != 2 {
+            return Err("Invalid position");
+        }
+        // Convert string to uppercase
+        let s: String = s.to_uppercase();
+        // Get column
+        let row: i32 = (s.chars().nth(1).unwrap().to_digit(10).unwrap_or(0) as i32) - 1;
+        let col: i32 = match s.chars().nth(0).unwrap() {
+            'A' => 0,
+            'B' => 1,
+            'C' => 2,
+            'D' => 3,
+            'E' => 4,
+            'F' => 5,
+            'G' => 6,
+            'H' => 7,
+            _ => return Err("Invalid column"),
+        };
+        let position: Position = Position::new(row, col);
+        if position.is_on_board() {
+            Ok(position)
+        } else {
+            Err("Invalid row")
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
 
@@ -749,5 +781,18 @@ mod test {
         assert_eq!(D5.is_knight_move(D6), false);
         assert_eq!(D5.is_knight_move(A1), false);
         assert_eq!(D5.is_knight_move(F3), false);
+    }
+
+    #[test]
+    fn position_from_str() {
+        assert_eq!(Position::from_str("A1").ok().unwrap(), A1);
+        assert_eq!(Position::from_str("h8").ok().unwrap(), H8);
+        assert_eq!(Position::from_str("a8").ok().unwrap(), A8);
+        assert_eq!(Position::from_str("H1").ok().unwrap(), H1);
+        assert_eq!(Position::from_str("C6").ok().unwrap(), C6);
+        assert!(Position::from_str("a0").is_err());
+        assert!(Position::from_str("A9").is_err());
+        assert!(Position::from_str("J5").is_err());
+        assert!(Position::from_str("a01").is_err());
     }
 }
