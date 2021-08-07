@@ -211,10 +211,10 @@ impl Board {
     /// Get legal moves for piece at `pos` position
     #[inline]
     pub fn get_piece_legal_moves(&self, pos: Position) -> Vec<Move> {
-        if let Some(piece) = self.get_piece(pos) {
-            return piece.get_legal_moves(self);
+        match self.get_piece(pos) {
+            Some(piece) => piece.get_legal_moves(self),
+            None => Vec::new(),
         }
-        Vec::new()
     }
 
     /// ### get_player_value
@@ -223,12 +223,12 @@ impl Board {
     /// This subtracts the opponents value, and accounts for piece positions
     /// and material value.
     #[inline]
-    pub fn get_player_value(&self, ally_color: Color) -> f64 {
+    pub fn get_player_value(&self, color: Color) -> f64 {
         self.squares
             .iter()
             .map(|square| match square.get_piece() {
                 Some(piece) => {
-                    if piece.get_color() == ally_color {
+                    if piece.get_color() == color {
                         piece.get_weighted_value()
                     } else {
                         -piece.get_weighted_value()
@@ -244,19 +244,23 @@ impl Board {
     /// get rating for two players in percentage.
     /// First value is for white, second value is for black
     pub fn get_rating(&self, depth: usize) -> (f64, f64) {
+        // Get turn color in order to switch values later
         let turn_color: Color = self.get_turn();
+        // Calculate best and worst move for current player
         let (best_m, _, your_best_val) = self.get_best_next_move(depth);
         let (_, _, your_lowest_val) = self.get_worst_next_move(depth);
-        let mut your_val = your_best_val + your_lowest_val;
+        let mut your_val: f64 = your_best_val + your_lowest_val;
+        // Apply best move and get best move for the other player
         let (_, _, their_best_val) = self
             .apply_move(best_m)
             .change_turn()
             .get_best_next_move(depth);
+        // Apply best move and get worst or the other player
         let (_, _, their_lowest_val) = self
             .apply_move(best_m)
             .change_turn()
             .get_worst_next_move(depth);
-        let mut their_val = their_best_val + their_lowest_val;
+        let mut their_val: f64 = their_best_val + their_lowest_val;
 
         if your_val < 0.0 {
             your_val = -your_val;
@@ -269,8 +273,8 @@ impl Board {
         }
 
         // Return players percentage
-        let your_percentage: f64 = your_val / (your_val + their_val);
-        let their_percentage: f64 = their_val / (your_val + their_val);
+        let your_percentage: f64 = (your_val / (your_val + their_val)) * 100.0;
+        let their_percentage: f64 = (their_val / (your_val + their_val)) * 100.0;
         // If turn color is white, return first value as white, otherwise invert
         match turn_color {
             WHITE => (your_percentage, their_percentage),
@@ -315,7 +319,7 @@ impl Board {
     /// Otherwise, return false.
     #[inline]
     pub fn has_piece(&self, pos: Position) -> bool {
-        self.get_piece(pos) != None
+        self.get_piece(pos).is_some()
     }
 
     /// ### has_no_piece
@@ -324,7 +328,7 @@ impl Board {
     /// Otherwise, return false.
     #[inline]
     pub fn has_no_piece(&self, pos: Position) -> bool {
-        self.get_piece(pos) == None
+        self.get_piece(pos).is_none()
     }
 
     /// ### is_threatened
@@ -459,6 +463,15 @@ impl Board {
     /// ### has_sufficient_material
     ///
     /// Does the respective player have sufficient material?
+    ///
+    /// Insufficient material consists of:
+    ///
+    /// 1. The player only has a king
+    /// 2. The player only has a king and a knight
+    /// 3. The player only has a king and two knights
+    /// 4. The player only has a king and a bishop
+    /// 5. The player only has a king and two bishops
+    ///
     pub fn has_sufficient_material(&self, color: Color) -> bool {
         let mut pieces = vec![];
         for square in &self.squares {
@@ -499,6 +512,15 @@ impl Board {
     /// ### has_insufficient_material
     ///
     /// Does the respective player have insufficient material?
+    ///
+    /// Insufficient material consists of:
+    ///
+    /// 1. The player only has a king
+    /// 2. The player only has a king and a knight
+    /// 3. The player only has a king and two knights
+    /// 4. The player only has a king and a bishop
+    /// 5. The player only has a king and two bishops
+    ///
     #[inline]
     pub fn has_insufficient_material(&self, color: Color) -> bool {
         !self.has_sufficient_material(color)
@@ -912,7 +934,7 @@ impl Board {
 impl core::fmt::Display for Board {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> Result<(), core::fmt::Error> {
         // Make progress bar
-        let (white_score, black_score): (f64, f64) = self.get_rating(4);
+        let (white_score, black_score): (f64, f64) = self.get_rating(2);
         let (your_color, their_color) = match self.turn {
             WHITE => ("▓", "░"),
             BLACK => ("░", "▓"),
@@ -923,13 +945,13 @@ impl core::fmt::Display for Board {
         };
 
         let white = match self.turn {
-            WHITE => your_color.repeat((your_score * 16 as f64) as usize),
-            BLACK => their_color.repeat((their_score * 16 as f64) as usize),
+            WHITE => your_color.repeat((your_score * 0.16 as f64) as usize),
+            BLACK => their_color.repeat((their_score * 0.16 as f64) as usize),
         };
 
         let black = match self.turn {
-            BLACK => your_color.repeat((your_score * 16 as f64) as usize),
-            WHITE => their_color.repeat((their_score * 16 as f64) as usize),
+            BLACK => your_color.repeat((your_score * 0.16 as f64) as usize),
+            WHITE => their_color.repeat((their_score * 0.16 as f64) as usize),
         };
         let rating_bar = white + &black;
         // Prepare labels
@@ -1282,5 +1304,359 @@ mod test {
                 Move::Piece(G1, H3),
             ]
         );
+        assert_eq!(
+            board.get_legal_moves(BLACK),
+            vec![
+                // Knights
+                Move::Piece(B8, A6),
+                Move::Piece(B8, C6),
+                Move::Piece(G8, F6),
+                Move::Piece(G8, H6),
+                // pawns
+                Move::Piece(A7, A5),
+                Move::Piece(A7, A6),
+                Move::Piece(B7, B5),
+                Move::Piece(B7, B6),
+                Move::Piece(C7, C5),
+                Move::Piece(C7, C6),
+                Move::Piece(D7, D5),
+                Move::Piece(D7, D6),
+                Move::Piece(E7, E5),
+                Move::Piece(E7, E6),
+                Move::Piece(F7, F5),
+                Move::Piece(F7, F6),
+                Move::Piece(G7, G5),
+                Move::Piece(G7, G6),
+                Move::Piece(H7, H5),
+                Move::Piece(H7, H6),
+            ]
+        );
+    }
+
+    #[test]
+    fn get_piece_legal_moves() {
+        let board: Board = Board::default();
+        assert_eq!(
+            board.get_piece_legal_moves(B8),
+            vec![Move::Piece(B8, A6), Move::Piece(B8, C6)]
+        );
+        assert_eq!(board.get_piece_legal_moves(E1), vec![]);
+        assert_eq!(board.get_piece_legal_moves(E5), vec![]);
+    }
+
+    #[test]
+    fn get_player_value() {
+        let board: Board = Board::default();
+        assert_eq!(board.get_player_value(WHITE), 0.0);
+        assert_eq!(board.get_player_value(BLACK), 0.0);
+        // Take queen
+        let board: Board = board.remove_piece(D1);
+        assert_eq!(board.get_player_value(WHITE), -89.5);
+        assert_eq!(board.get_player_value(BLACK), 89.5);
+    }
+
+    #[test]
+    fn get_rating() {
+        let board: Board = Board::default();
+        let rating = board.get_rating(2);
+        assert_eq!((rating.0.round() as i64, rating.1.round() as i64), (41, 59));
+    }
+
+    #[test]
+    fn has_ally_piece() {
+        let board: Board = Board::default();
+        assert_eq!(board.has_ally_piece(A1, WHITE), true);
+        assert_eq!(board.has_ally_piece(E1, BLACK), false);
+        assert_eq!(board.has_ally_piece(G8, BLACK), true);
+        assert_eq!(board.has_ally_piece(G7, WHITE), false);
+    }
+
+    #[test]
+    fn has_enemy_piece() {
+        let board: Board = Board::default();
+        assert_eq!(board.has_enemy_piece(A1, WHITE), false);
+        assert_eq!(board.has_enemy_piece(E1, BLACK), true);
+        assert_eq!(board.has_enemy_piece(G8, BLACK), false);
+        assert_eq!(board.has_enemy_piece(G7, WHITE), true);
+    }
+
+    #[test]
+    fn has_piece() {
+        let board: Board = Board::default();
+        assert_eq!(board.has_piece(A1), true);
+        assert_eq!(board.has_piece(E6), false);
+    }
+
+    #[test]
+    fn has_no_piece() {
+        let board: Board = Board::default();
+        assert_eq!(board.has_no_piece(A1), false);
+        assert_eq!(board.has_no_piece(E6), true);
+    }
+
+    #[test]
+    fn is_threatened() {
+        let mut board: Board = Board::default();
+        assert_eq!(board.is_threatened(A8, BLACK), false);
+        assert_eq!(board.is_threatened(B8, BLACK), false);
+        assert_eq!(board.is_threatened(B7, BLACK), false);
+        // let's put a white queen at A7
+        board.add_piece(Piece::Queen(WHITE, A7));
+        assert_eq!(board.is_threatened(A8, BLACK), true);
+        assert_eq!(board.is_threatened(B8, BLACK), true);
+        assert_eq!(board.is_threatened(B7, BLACK), true);
+    }
+
+    #[test]
+    fn is_in_check() {
+        let mut board: Board = Board::default();
+        assert_eq!(board.is_in_check(WHITE), false);
+        assert_eq!(board.is_in_check(BLACK), false);
+        // Let's put a queen at E7
+        board.add_piece(Piece::Queen(WHITE, E7));
+        assert_eq!(board.is_in_check(WHITE), false);
+        assert_eq!(board.is_in_check(BLACK), true);
+        // let's put a queen at E2
+        board.add_piece(Piece::Queen(BLACK, E2));
+        assert_eq!(board.is_in_check(WHITE), true);
+        assert_eq!(board.is_in_check(BLACK), true);
+    }
+
+    #[test]
+    fn can_kingside_castle() {
+        let board: Board = Board::default();
+        // Can't castle on kingside at beginning
+        assert_eq!(board.can_kingside_castle(WHITE), false);
+        assert_eq!(board.can_kingside_castle(BLACK), false);
+        // Let's play giuoco piano, which is good for castling
+        let board = board.apply_move(Move::Piece(E2, E4)).change_turn();
+        let board = board.apply_move(Move::Piece(E7, E5)).change_turn();
+        let board = board.apply_move(Move::Piece(G1, G3)).change_turn();
+        let board = board.apply_move(Move::Piece(B8, C6)).change_turn();
+        let board = board.apply_move(Move::Piece(F1, C4)).change_turn();
+        let board = board.apply_move(Move::Piece(F8, C5)).change_turn();
+        // Now white can castle
+        assert_eq!(board.can_kingside_castle(WHITE), true);
+        assert_eq!(board.can_kingside_castle(BLACK), false);
+        // White castle
+        let board = board.apply_move(Move::KingSideCastle).change_turn();
+        let board = board.apply_move(Move::Piece(G8, F6)).change_turn();
+        let board = board.apply_move(Move::Piece(D2, D3)).change_turn();
+        // Now black can castle
+        assert_eq!(board.can_kingside_castle(WHITE), false);
+        assert_eq!(board.can_kingside_castle(BLACK), true);
+    }
+
+    #[test]
+    fn can_queenside_castle() {
+        let board: Board = Board::default();
+        // Can't castle on kingside at beginning
+        assert_eq!(board.can_queenside_castle(WHITE), false);
+        assert_eq!(board.can_queenside_castle(BLACK), false);
+        // Let's play some random moves to get a queenside castle
+        let board = board.apply_move(Move::Piece(E2, E4)).change_turn();
+        let board = board.apply_move(Move::Piece(E7, E5)).change_turn();
+        let board = board.apply_move(Move::Piece(D1, E2)).change_turn();
+        let board = board.apply_move(Move::Piece(D8, E7)).change_turn();
+        let board = board.apply_move(Move::Piece(D2, D3)).change_turn();
+        let board = board.apply_move(Move::Piece(D7, D6)).change_turn();
+        let board = board.apply_move(Move::Piece(C1, E3)).change_turn();
+        let board = board.apply_move(Move::Piece(C8, E6)).change_turn();
+        let board = board.apply_move(Move::Piece(B1, C3)).change_turn();
+        // Now white can castle
+        assert_eq!(board.can_queenside_castle(WHITE), true);
+        assert_eq!(board.can_queenside_castle(BLACK), false);
+        let board = board.apply_move(Move::Piece(B8, C6)).change_turn();
+        // Now black can castle
+        assert_eq!(board.can_queenside_castle(WHITE), true);
+        assert_eq!(board.can_queenside_castle(BLACK), true);
+        // Castle
+        let board = board.apply_move(Move::QueenSideCastle).change_turn();
+        assert_eq!(board.can_queenside_castle(WHITE), false);
+        assert_eq!(board.can_queenside_castle(BLACK), true);
+        let board = board.apply_move(Move::QueenSideCastle).change_turn();
+        assert_eq!(board.can_queenside_castle(WHITE), false);
+        assert_eq!(board.can_queenside_castle(BLACK), false);
+    }
+
+    #[test]
+    fn is_legal_move() {
+        let board: Board = Board::default();
+        assert_eq!(board.is_legal_move(Move::Resign, WHITE), true);
+        assert_eq!(board.is_legal_move(Move::Piece(A2, A4), WHITE), true);
+        assert_eq!(board.is_legal_move(Move::Resign, BLACK), true);
+        assert_eq!(board.is_legal_move(Move::Piece(A7, A5), BLACK), true);
+        assert_eq!(board.is_legal_move(Move::Piece(D1, D3), WHITE), false);
+        // Castling
+        // Let's play giuoco piano, which is good for castling
+        let board = board.apply_move(Move::Piece(E2, E4)).change_turn();
+        let board = board.apply_move(Move::Piece(E7, E5)).change_turn();
+        let board = board.apply_move(Move::Piece(G1, G3)).change_turn();
+        let board = board.apply_move(Move::Piece(B8, C6)).change_turn();
+        let board = board.apply_move(Move::Piece(F1, C4)).change_turn();
+        let board = board.apply_move(Move::Piece(F8, C5)).change_turn();
+        // Now white can castle
+        assert_eq!(board.is_legal_move(Move::KingSideCastle, WHITE), true);
+        // Queenside castle
+        let board: Board = Board::default();
+        let board = board.apply_move(Move::Piece(E2, E4)).change_turn();
+        let board = board.apply_move(Move::Piece(E7, E5)).change_turn();
+        let board = board.apply_move(Move::Piece(D1, E2)).change_turn();
+        let board = board.apply_move(Move::Piece(D8, E7)).change_turn();
+        let board = board.apply_move(Move::Piece(D2, D3)).change_turn();
+        let board = board.apply_move(Move::Piece(D7, D6)).change_turn();
+        let board = board.apply_move(Move::Piece(C1, E3)).change_turn();
+        let board = board.apply_move(Move::Piece(C8, E6)).change_turn();
+        let board = board.apply_move(Move::Piece(B1, C3)).change_turn();
+        // Now white can castle
+        assert_eq!(board.is_legal_move(Move::QueenSideCastle, WHITE), true);
+    }
+
+    #[test]
+    fn has_sufficient_material() {
+        let board: Board = Board::default();
+        assert_eq!(board.has_sufficient_material(WHITE), true);
+        assert_eq!(board.has_insufficient_material(WHITE), false);
+        let mut board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::King(WHITE, E1))
+            .build();
+        // King only
+        assert_eq!(board.has_sufficient_material(WHITE), false);
+        assert_eq!(board.has_insufficient_material(WHITE), true);
+        // One bishop
+        board.add_piece(Piece::Bishop(WHITE, E2));
+        assert_eq!(board.has_sufficient_material(WHITE), false);
+        assert_eq!(board.has_insufficient_material(WHITE), true);
+        // One knight
+        board.add_piece(Piece::Knight(WHITE, E2));
+        assert_eq!(board.has_sufficient_material(WHITE), false);
+        assert_eq!(board.has_insufficient_material(WHITE), true);
+        // Two knights
+        board.add_piece(Piece::Knight(WHITE, E2));
+        board.add_piece(Piece::Knight(WHITE, E3));
+        assert_eq!(board.has_sufficient_material(WHITE), false);
+        assert_eq!(board.has_insufficient_material(WHITE), true);
+        // Two bishops
+        board.add_piece(Piece::Bishop(WHITE, E2));
+        board.add_piece(Piece::Bishop(WHITE, E3));
+        assert_eq!(board.has_sufficient_material(WHITE), false);
+        assert_eq!(board.has_insufficient_material(WHITE), true);
+        // Leave condition
+        board.add_piece(Piece::Bishop(WHITE, E2));
+        board.add_piece(Piece::Bishop(WHITE, E3));
+        board.add_piece(Piece::Knight(WHITE, E4));
+        assert_eq!(board.has_sufficient_material(WHITE), true);
+        assert_eq!(board.has_insufficient_material(WHITE), false);
+    }
+
+    #[test]
+    fn is_stalemate() {
+        let board: Board = Board::default();
+        assert_eq!(board.is_stalemate(), false);
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::King(WHITE, G3))
+            .piece(Piece::Knight(WHITE, H3))
+            .piece(Piece::King(BLACK, H1))
+            .build()
+            .change_turn();
+        assert_eq!(board.is_stalemate(), true);
+    }
+
+    #[test]
+    fn is_checkmate() {
+        let board: Board = Board::default();
+        assert_eq!(board.is_checkmate(), false);
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::King(BLACK, G8))
+            .piece(Piece::Queen(WHITE, D8))
+            .piece(Piece::Rook(WHITE, B7))
+            .piece(Piece::King(WHITE, C3))
+            .build()
+            .change_turn();
+        assert_eq!(board.is_checkmate(), true);
+    }
+
+    #[test]
+    fn get_best_next_move() {
+        let board: Board = Board::default();
+        assert_eq!(
+            board.get_best_next_move(2),
+            (Move::Piece(E2, E4), 4695, 7.0)
+        );
+    }
+
+    #[test]
+    fn get_worst_next_move() {
+        let board: Board = Board::default();
+        assert_eq!(
+            board.get_worst_next_move(2),
+            (Move::Piece(G2, G3), 4695, -1.0)
+        );
+    }
+
+    #[test]
+    fn remove_all() {
+        let board: Board = Board::default().remove_all(WHITE);
+        assert_eq!(board.has_no_piece(E1), true);
+        assert_eq!(board.has_no_piece(E8), false);
+        let board = board.remove_all(BLACK);
+        assert_eq!(board.has_no_piece(E8), true);
+    }
+
+    #[test]
+    fn remove_piece() {
+        let board: Board = Board::default().remove_piece(D1);
+        assert_eq!(board.has_no_piece(D1), true);
+    }
+
+    #[test]
+    fn queen_all() {
+        let board: Board = Board::default().queen_all(WHITE);
+        assert_eq!(board.get_piece(A1).unwrap(), Piece::Queen(WHITE, A1));
+        let board = board.queen_all(BLACK);
+        assert_eq!(board.get_piece(A7).unwrap(), Piece::Queen(BLACK, A7));
+    }
+
+    #[test]
+    fn set_turn() {
+        let board: Board = Board::default().set_turn(BLACK);
+        assert_eq!(board.get_turn(), BLACK);
+        let board = board.set_turn(WHITE);
+        assert_eq!(board.get_turn(), WHITE);
+    }
+
+    #[test]
+    fn change_turn() {
+        let board: Board = Board::default().change_turn();
+        assert_eq!(board.get_turn(), BLACK);
+        let board = board.change_turn();
+        assert_eq!(board.get_turn(), WHITE);
+    }
+
+    #[test]
+    fn play_move() {
+        let board: Board = Board::default();
+        // Resign
+        assert_eq!(board.play_move(Move::Resign), MoveResult::Victory(BLACK));
+        // Try illegal move
+        assert_eq!(
+            board.play_move(Move::KingSideCastle),
+            MoveResult::IllegalMove(Move::KingSideCastle)
+        );
+        // play legal move
+        let test_board: Board = board.clone().apply_move(Move::Piece(E2, E4)).change_turn();
+        assert_eq!(
+            board.play_move(Move::Piece(E2, E4)),
+            MoveResult::Continuing(test_board)
+        );
+        // TODO: promote
+    }
+
+    #[test]
+    fn fmt_board() {
+        Board::default().to_string();
     }
 }
