@@ -508,7 +508,7 @@ impl FromStr for Position {
         let s: String = s.to_uppercase();
         // Get column
         let row: i32 = (s.chars().nth(1).unwrap().to_digit(10).unwrap_or(0) as i32) - 1;
-        let col: i32 = match s.chars().nth(0).unwrap() {
+        let col: i32 = match s.chars().next().unwrap() {
             'A' => 0,
             'B' => 1,
             'C' => 2,

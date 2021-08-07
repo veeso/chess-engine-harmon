@@ -484,29 +484,18 @@ impl Board {
 
         pieces.sort();
 
-        if pieces.len() == 0 {
-            false
-        } else if pieces.len() == 1 && pieces[0].is_king() {
-            false
-        } else if pieces.len() == 2 && pieces[0].is_king() && pieces[1].is_knight() {
-            false
-        } else if pieces.len() == 2 && pieces[0].is_king() && pieces[1].is_bishop() {
-            false
-        } else if pieces.len() == 3
-            && pieces[0].is_king()
-            && pieces[1].is_knight()
-            && pieces[2].is_knight()
-        {
-            false
-        } else if pieces.len() == 3
-            && pieces[0].is_king()
-            && pieces[1].is_bishop()
-            && pieces[2].is_bishop()
-        {
-            false
-        } else {
-            true
-        }
+        !(pieces.is_empty()
+            || (pieces.len() == 1 && pieces[0].is_king())
+            || (pieces.len() == 2 && pieces[0].is_king() && pieces[1].is_knight())
+            || (pieces.len() == 2 && pieces[0].is_king() && pieces[1].is_bishop())
+            || (pieces.len() == 3
+                && pieces[0].is_king()
+                && pieces[1].is_knight()
+                && pieces[2].is_knight())
+            || (pieces.len() == 3
+                && pieces[0].is_king()
+                && pieces[1].is_bishop()
+                && pieces[2].is_bishop()))
     }
 
     /// ### has_insufficient_material
@@ -940,13 +929,13 @@ impl core::fmt::Display for Board {
         };
 
         let white = match self.turn {
-            WHITE => your_color.repeat((your_score * 0.16 as f64) as usize),
-            BLACK => their_color.repeat((their_score * 0.16 as f64) as usize),
+            WHITE => your_color.repeat((your_score * 0.16_f64) as usize),
+            BLACK => their_color.repeat((their_score * 0.16_f64) as usize),
         };
 
         let black = match self.turn {
-            BLACK => your_color.repeat((your_score * 0.16 as f64) as usize),
-            WHITE => their_color.repeat((their_score * 0.16 as f64) as usize),
+            BLACK => your_color.repeat((your_score * 0.16_f64) as usize),
+            WHITE => their_color.repeat((their_score * 0.16_f64) as usize),
         };
         let rating_bar = white + &black;
         // Prepare labels
