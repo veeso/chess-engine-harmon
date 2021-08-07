@@ -30,7 +30,7 @@ mod types;
 use castling_rights::CastlingRights;
 // Export
 pub use builder::BoardBuilder;
-pub use types::{MoveResult, Promotion};
+pub use types::{MoveResult, Promotion, RatedMove};
 
 // -- Board
 
@@ -247,16 +247,16 @@ impl Board {
         // Get turn color in order to switch values later
         let turn_color: Color = self.get_turn();
         // Calculate best and worst move for current player
-        let (best_m, _, your_best_val) = self.get_best_next_move(depth);
-        let (_, _, your_lowest_val) = self.get_worst_next_move(depth);
+        let (best_m, your_best_val) = self.get_best_next_move(depth);
+        let (_, your_lowest_val) = self.get_worst_next_move(depth);
         let mut your_val: f64 = your_best_val + your_lowest_val;
         // Apply best move and get best move for the other player
-        let (_, _, their_best_val) = self
+        let (_, their_best_val) = self
             .apply_move(best_m)
             .change_turn()
             .get_best_next_move(depth);
         // Apply best move and get worst or the other player
-        let (_, _, their_lowest_val) = self
+        let (_, their_lowest_val) = self
             .apply_move(best_m)
             .change_turn()
             .get_worst_next_move(depth);
@@ -544,6 +544,27 @@ impl Board {
 
     // -- evaluation
 
+    /// ### rate_legal_moves
+    ///
+    /// Returns the list of legal moves along with their score
+    pub fn rate_legal_moves(&self, depth: usize) -> Vec<RatedMove> {
+        // Get legal moves
+        let legal_moves = self.get_legal_moves(self.get_turn());
+        let color = self.get_turn();
+        // Run minimax for each legal move
+        let rated: Vec<RatedMove> = legal_moves
+            .iter()
+            .map(|x| {
+                (
+                    *x,
+                    self.apply_move(*x)
+                        .minimax(depth, -1000000.0, 1000000.0, false, color),
+                )
+            })
+            .collect();
+        rated
+    }
+
     /// ### get_best_next_move
     ///
     /// Get the best move for the current player with `depth` number of moves
@@ -551,35 +572,21 @@ impl Board {
     ///
     /// This method returns
     /// 1. The best move
-    /// 2. The number of boards evaluated to come to a conclusion
-    /// 3. The rating of the best move
+    /// 2. The rating of the best move
     ///
     /// It's best not to use the rating value by itself for anything, as it
     /// is relative to the other player's move ratings as well.
-    pub fn get_best_next_move(&self, depth: usize) -> (Move, u64, f64) {
-        let legal_moves = self.get_legal_moves(self.get_turn());
-        let mut best_move_value = -999999.0;
-        let mut best_move = Move::Resign;
-
-        let color = self.get_turn();
-
-        let mut board_count = 0;
-        for m in &legal_moves {
-            let child_board_value = self.apply_move(*m).minimax(
-                depth,
-                -1000000.0,
-                1000000.0,
-                false,
-                color,
-                &mut board_count,
-            );
-            if child_board_value >= best_move_value {
-                best_move = *m;
-                best_move_value = child_board_value;
-            }
+    pub fn get_best_next_move(&self, depth: usize) -> (Move, f64) {
+        match self
+            .rate_legal_moves(depth)
+            .iter()
+            .max_by(|a, b| match a.1 > b.1 {
+                true => Ordering::Greater,
+                false => Ordering::Less,
+            }) {
+            Some(values) => *values,
+            None => (Move::Resign, -999999.0),
         }
-
-        (best_move, board_count, best_move_value)
     }
 
     /// ### get_worst_next_move
@@ -589,36 +596,29 @@ impl Board {
     ///
     /// This method returns
     /// 1. The worst move
-    /// 2. The number of boards evaluated to come to a conclusion
-    /// 3. The rating of the best move
+    /// 2. The rating of the best move
     ///
     /// It's best not to use the rating value by itself for anything, as it
     /// is relative to the other player's move ratings as well.
-    pub fn get_worst_next_move(&self, depth: usize) -> (Move, u64, f64) {
+    pub fn get_worst_next_move(&self, depth: usize) -> RatedMove {
         let legal_moves = self.get_legal_moves(self.get_turn());
-        let mut best_move_value = -999999.0;
-        let mut best_move = Move::Resign;
 
         let color = self.get_turn();
-
-        let mut board_count = 0;
-        for m in &legal_moves {
-            let child_board_value = self.apply_move(*m).minimax(
-                depth,
-                -1000000.0,
-                1000000.0,
-                true,
-                !color,
-                &mut board_count,
-            );
-
-            if child_board_value >= best_move_value {
-                best_move = *m;
-                best_move_value = child_board_value;
-            }
-        }
-
-        (best_move, board_count, best_move_value)
+        // Calc worst move
+        legal_moves
+            .iter()
+            .map(|x| {
+                (
+                    *x,
+                    self.apply_move(*x)
+                        .minimax(depth, -1000000.0, 1000000.0, true, !color),
+                )
+            })
+            .max_by(|a, b| match a.1 > b.1 {
+                true => Ordering::Greater,
+                false => Ordering::Less,
+            })
+            .unwrap_or((Move::Resign, -999999.0))
     }
 
     // -- modifiers
@@ -863,10 +863,7 @@ impl Board {
         mut beta: f64,
         is_maximizing: bool,
         getting_move_for: Color,
-        board_count: &mut u64,
     ) -> f64 {
-        *board_count += 1;
-
         if depth == 0 {
             return self.get_player_value(getting_move_for);
         }
@@ -884,7 +881,6 @@ impl Board {
                     beta,
                     !is_maximizing,
                     getting_move_for,
-                    board_count,
                 );
 
                 if child_board_value > best_move_value {
@@ -909,7 +905,6 @@ impl Board {
                     beta,
                     !is_maximizing,
                     getting_move_for,
-                    board_count,
                 );
                 if child_board_value < best_move_value {
                     best_move_value = child_board_value;
@@ -1582,19 +1577,13 @@ mod test {
     #[test]
     fn get_best_next_move() {
         let board: Board = Board::default();
-        assert_eq!(
-            board.get_best_next_move(2),
-            (Move::Piece(E2, E4), 4695, 7.0)
-        );
+        assert_eq!(board.get_best_next_move(2), (Move::Piece(E2, E4), 7.0));
     }
 
     #[test]
     fn get_worst_next_move() {
         let board: Board = Board::default();
-        assert_eq!(
-            board.get_worst_next_move(2),
-            (Move::Piece(G2, G3), 4695, -1.0)
-        );
+        assert_eq!(board.get_worst_next_move(2), (Move::Piece(G2, G3), -1.0));
     }
 
     #[test]

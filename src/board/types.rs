@@ -4,6 +4,11 @@
 
 use super::{Board, Color, Move, Position};
 
+/// ## RatedMove
+///
+/// A tuple made up of the Move and its score
+pub type RatedMove = (Move, f64);
+
 /// ## Promotion
 ///
 /// Defines the kind of promotion to perform whenever a pawn reaches the last line

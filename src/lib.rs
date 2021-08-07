@@ -36,7 +36,7 @@
 //!     let board = Board::default();
 //!
 //!     // Get the best move with 4 moves of lookahead
-//!     let (best_move, _, _) = board.get_best_next_move(4);
+//!     let (best_move, _) = board.get_best_next_move(4);
 //!     // Get the worst move with 3 moves of lookahead
 //!     let worst_move = board.get_worst_next_move(3);
 //!
