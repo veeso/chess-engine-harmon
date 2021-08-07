@@ -533,6 +533,7 @@ mod test {
 
     use super::*;
 
+    use alloc::string::ToString;
     use pretty_assertions::assert_eq;
 
     #[test]
@@ -794,5 +795,17 @@ mod test {
         assert!(Position::from_str("A9").is_err());
         assert!(Position::from_str("J5").is_err());
         assert!(Position::from_str("a01").is_err());
+    }
+
+    #[test]
+    fn fmt_position() {
+        assert_eq!(A1.to_string(), "a1");
+        assert_eq!(B2.to_string(), "b2");
+        assert_eq!(C3.to_string(), "c3");
+        assert_eq!(D4.to_string(), "d4");
+        assert_eq!(E5.to_string(), "e5");
+        assert_eq!(F6.to_string(), "f6");
+        assert_eq!(G7.to_string(), "g7");
+        assert_eq!(H8.to_string(), "h8");
     }
 }

@@ -273,5 +273,28 @@ mod test {
         assert_eq!(board.black_castling_rights.can_queenside_castle(), true);
         assert_eq!(board.white_castling_rights.can_kingside_castle(), false);
         assert_eq!(board.white_castling_rights.can_queenside_castle(), false);
+        // Disable all
+        let board: Board = BoardBuilder::default().disable_castling().build();
+        assert_eq!(board.black_castling_rights.can_kingside_castle(), false);
+        assert_eq!(board.black_castling_rights.can_queenside_castle(), false);
+        assert_eq!(board.white_castling_rights.can_kingside_castle(), false);
+        assert_eq!(board.white_castling_rights.can_queenside_castle(), false);
+        // Disable queen
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .disable_queenside_castle(BLACK)
+            .build();
+        assert_eq!(board.black_castling_rights.can_kingside_castle(), true);
+        assert_eq!(board.black_castling_rights.can_queenside_castle(), false);
+        assert_eq!(board.white_castling_rights.can_kingside_castle(), true);
+        assert_eq!(board.white_castling_rights.can_queenside_castle(), true);
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .disable_kingside_castle(BLACK)
+            .build();
+        assert_eq!(board.black_castling_rights.can_kingside_castle(), false);
+        assert_eq!(board.black_castling_rights.can_queenside_castle(), true);
+        assert_eq!(board.white_castling_rights.can_kingside_castle(), true);
+        assert_eq!(board.white_castling_rights.can_queenside_castle(), true);
     }
 }

@@ -932,6 +932,26 @@ mod test {
             Piece::Rook(WHITE, H1).with_color(BLACK),
             Piece::Rook(BLACK, H1)
         );
+        assert_eq!(
+            Piece::King(WHITE, H1).with_color(BLACK),
+            Piece::King(BLACK, H1)
+        );
+        assert_eq!(
+            Piece::Knight(WHITE, H1).with_color(BLACK),
+            Piece::Knight(BLACK, H1)
+        );
+        assert_eq!(
+            Piece::Bishop(WHITE, H1).with_color(BLACK),
+            Piece::Bishop(BLACK, H1)
+        );
+        assert_eq!(
+            Piece::Pawn(WHITE, H1).with_color(BLACK),
+            Piece::Pawn(BLACK, H1)
+        );
+        assert_eq!(
+            Piece::Queen(WHITE, H1).with_color(BLACK),
+            Piece::Queen(BLACK, H1)
+        );
     }
 
     #[test]
@@ -1692,6 +1712,16 @@ mod test {
             .piece(Piece::Bishop(BLACK, H7))
             .build();
         assert_eq!(Piece::Knight(WHITE, E4).get_legal_moves(&board), vec![]);
+    }
+
+    #[test]
+    fn is_legal_move() {
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Pawn(WHITE, E4))
+            .piece(Piece::Pawn(WHITE, E5))
+            .build();
+        assert_eq!(Piece::Pawn(WHITE, E4).is_legal_move(E5, &board), false);
     }
 
     #[test]

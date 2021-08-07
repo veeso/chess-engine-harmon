@@ -11,4 +11,5 @@ pub use types::{EndGame, GameResult};
 // TODO: game
 // TODO: player
 // TODO: THREEFOLD REPETITION
-// TODO: times; move tracks time
+// TODO: times; move tracks time; add_time, subtract_time; use duration
+// Moves are tuple of Move and Duration

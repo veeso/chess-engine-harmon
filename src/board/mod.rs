@@ -1253,6 +1253,7 @@ mod test {
         let board: Board = Board::default();
         assert_eq!(board.get_piece(D1).unwrap(), Piece::Queen(WHITE, D1));
         assert_eq!(board.get_piece(D3), None);
+        assert_eq!(board.get_piece(Position::new(24, 24)), None);
     }
 
     #[test]
@@ -1585,6 +1586,8 @@ mod test {
     fn get_best_next_move() {
         let board: Board = Board::default();
         assert_eq!(board.get_best_next_move(2), (Move::Piece(E2, E4), 7.0));
+        let board: Board = Board::empty();
+        assert_eq!(board.get_best_next_move(2), (Move::Resign, -999999.0));
     }
 
     #[test]
@@ -1648,6 +1651,25 @@ mod test {
             board.play_move(Move::Piece(E2, E4)),
             MoveResult::Continuing(test_board)
         );
+        // Checkmate
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::King(BLACK, G8))
+            .piece(Piece::Queen(WHITE, H6))
+            .piece(Piece::King(WHITE, F6))
+            .build();
+        assert_eq!(
+            board.play_move(Move::Piece(H6, G7)),
+            MoveResult::Victory(WHITE)
+        );
+        // Stalemate
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::King(BLACK, H8))
+            .piece(Piece::Queen(WHITE, F7))
+            .piece(Piece::King(WHITE, E7))
+            .build();
+        assert_eq!(board.play_move(Move::Piece(E7, F8)), MoveResult::Stalemate);
         // TODO: promote
     }
 
