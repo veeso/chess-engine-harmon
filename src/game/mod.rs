@@ -5,7 +5,11 @@
 //! the chess game (e.g. the threefold repetition stallmate).
 //!
 
+use alloc::vec::Vec;
+use core::time::Duration;
+
 // -- modules
+mod builder;
 mod clock;
 pub mod metadata;
 mod types;
@@ -15,14 +19,18 @@ use crate::Board;
 use metadata::Metadata;
 
 // -- export
+pub use builder::GameBuilder;
 pub use clock::Clock;
-pub use types::{EndGame, GameResult};
+pub use types::{EndGame, GameMove, GameResult};
 
 // TODO: game
 // TODO: THREEFOLD REPETITION
-// TODO: times; move tracks time; add_time, subtract_time; use duration
-// Moves are tuple of Move and Duration
 
+/// ## Game
+///
+/// A wrapper around the `Board`, which also tracks time, moves and match metadata (e.g. player data, date, event, location...).
+/// The game also adds some missing logics to the board, such as the "threefold repetition" stalemate.
+/// Game exposes a limited api to the board, which allows only to play a "standard and clean" chess match.
 #[derive(Debug, Clone)]
 pub struct Game {
     /// Current board state
@@ -31,4 +39,17 @@ pub struct Game {
     clock: Clock,
     /// Game metadata
     metadata: Metadata,
+    /// Game moves
+    moves: Vec<GameMove>,
+}
+
+impl Default for Game {
+    fn default() -> Self {
+        Self {
+            board: Board::default(),
+            clock: Clock::new(Duration::MAX, Duration::MAX),
+            metadata: Metadata::default(),
+            moves: Vec::default(),
+        }
+    }
 }
