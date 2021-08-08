@@ -397,6 +397,17 @@ impl Position {
         }
     }
 
+    /// ### is_promoting_pawn
+    ///
+    /// Is this pawn on the last rank for the respective player?
+    #[inline]
+    pub fn is_promoting_pawn(&self, color: Color) -> bool {
+        match color {
+            WHITE => self.row == 7,
+            BLACK => self.row == 0,
+        }
+    }
+
     /// ### is_kingside_rook
     ///
     /// Is this the starting position of the kingside rook?
@@ -711,6 +722,14 @@ mod test {
         // -- bad
         assert_eq!(D4.is_starting_pawn(WHITE), false);
         assert_eq!(D6.is_starting_pawn(BLACK), false);
+    }
+
+    #[test]
+    fn is_promoting_pawn() {
+        assert_eq!(G8.is_promoting_pawn(WHITE), true);
+        assert_eq!(A1.is_promoting_pawn(WHITE), false);
+        assert_eq!(A1.is_promoting_pawn(BLACK), true);
+        assert_eq!(G8.is_promoting_pawn(BLACK), false);
     }
 
     #[test]

@@ -30,10 +30,10 @@
 //! ```rust,no_run
 //! extern crate harmon;
 //!
-//! use harmon::{Board, MoveResult, Move};
+//! use harmon::{Board, MoveResult, Move, Promotion};
 //!
 //! fn main() {
-//!     let board = Board::default();
+//!     let mut board = Board::default();
 //!
 //!     // Get the best move with 4 moves of lookahead
 //!     let (best_move, _) = board.get_best_next_move(4);
@@ -60,6 +60,7 @@
 //!         MoveResult::Promote(next_board, pos) => {
 //!             println!("{}", next_board);
 //!             println!("Pawn promotion available at {}", pos);
+//!             board = next_board.promote(Promotion::Queen);
 //!         }
 //!         
 //!         MoveResult::Victory(winner) => {
@@ -99,6 +100,16 @@
 //! ## Game Vs. Board
 //!
 //! TODO: fill
+//!
+//! ## Promoting pawns
+//!
+//! Whenever you move one of your pawns to the last rank, a `Promotion` variant will be returned.
+//! Promotion is handled "asynchronously", because it is handled directly when moving the piece, but requires you to call another
+//! function to promote.
+//! Once the `Promotion` variant is returned, you have to call the `promote(Promotion)` function to promote the pawn.
+//! At this point you can keep playing moves as usual.
+//! Be careful though, if you don't promote when a `Promotion` is returned after playing move and, instead, you try to move another piece,
+//! the engine will panic.
 //!
 
 #![doc(html_playground_url = "https://play.rust-lang.org")]

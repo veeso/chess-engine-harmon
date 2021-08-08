@@ -9,6 +9,8 @@ Released on ??
 
 - **New features**:
   - Added `FromStr` for `Position` (e.g. `assert_eq!(Position::from_str("A1").ok().unwrap() == A1)`)
+  - Added `get_taken_piece` to `Board` to get the last taken piece after a turn
+  - Added `Promotion` to engine. (Before it just promoted pawn on last rank to queen, but that's incorrect, since sometimes can prevent checkmates and causing stalemates)
   - blah blah
 - **API changes**:
   - Renamed `print_rating_bar` to `get_rating`. Now it returns the scores as percentage `(white, black)` and not a string

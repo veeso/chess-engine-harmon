@@ -332,6 +332,20 @@ impl Piece {
         }
     }
 
+    /// ### is_promoting_pawn
+    ///
+    /// Is this piece a pawn which can be promoted?
+    ///
+    /// This means the pawn is at the last rank
+    #[inline]
+    pub fn is_promoting_pawn(&self) -> bool {
+        if let Self::Pawn(c, pos) = self {
+            pos.is_promoting_pawn(*c)
+        } else {
+            false
+        }
+    }
+
     /// ### is_queenside_rook
     ///
     /// Is this piece in the starting position for the queenside rook?
@@ -903,6 +917,14 @@ mod test {
         // others
         assert_eq!(Piece::Queen(WHITE, C2).is_starting_pawn(), false);
         assert_eq!(Piece::Bishop(BLACK, C7).is_starting_pawn(), false);
+    }
+
+    #[test]
+    fn is_promoting_pawn() {
+        assert_eq!(Piece::Pawn(WHITE, G8).is_promoting_pawn(), true);
+        assert_eq!(Piece::Pawn(WHITE, A1).is_promoting_pawn(), false);
+        assert_eq!(Piece::Pawn(BLACK, A1).is_promoting_pawn(), true);
+        assert_eq!(Piece::Pawn(BLACK, G8).is_promoting_pawn(), false);
     }
 
     #[test]

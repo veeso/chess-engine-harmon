@@ -45,7 +45,8 @@ pub struct Board {
     en_passant: Option<Position>,
     /// tracks eventually a taken piece on the last turn
     taken_piece: Option<Piece>,
-    // TODO: promotion: Option<Position>,
+    /// tracks eventually the possibility to promote a pawn
+    promotion: Option<Position>,
     /// castling rights for white player
     white_castling_rights: CastlingRights,
     /// castling rights for black player
@@ -91,6 +92,7 @@ impl Board {
             squares: [Square::empty(); 64],
             en_passant: None,
             taken_piece: None,
+            promotion: None,
             white_castling_rights: CastlingRights::default(),
             black_castling_rights: CastlingRights::default(),
             turn: WHITE,
@@ -692,36 +694,62 @@ impl Board {
     /// Panics if a promotion must be performed first
     pub fn play_move(&self, m: Move) -> MoveResult {
         let current_color = self.get_turn();
-
-        // TODO: panic if promotion is available
+        // Panic if promotion is available
+        if let Some(pos) = self.promotion {
+            panic!(
+                "A promotion at '{}' must be performed before moving a piece",
+                pos
+            );
+        }
+        // Make move
         if m == Move::Resign {
             MoveResult::Victory(!current_color)
         } else if self.is_legal_move(m, current_color) {
             // Apply move and change turn
-            let next_turn = self.apply_move(m).change_turn();
+            let next_turn: Board = self.apply_move(m);
             // If is checkmate, return victory
-            if next_turn.is_checkmate() {
+            if next_turn.change_turn().is_checkmate() {
                 MoveResult::Victory(current_color)
-            } else if next_turn.is_stalemate() {
+            } else if next_turn.change_turn().is_stalemate() {
                 // Check stalemate
                 MoveResult::Stalemate
             } else {
-                // TODO: check promotion
-                MoveResult::Continuing(next_turn)
+                // check for promotion
+                let next_turn: Board = next_turn.check_available_pawn_promotion();
+                // If there's a promotion available, return `Promote`; otherwise return `Continuing` changing player's turn
+                match next_turn.promotion {
+                    Some(pos_promotion) => MoveResult::Promote(next_turn, pos_promotion),
+                    None => MoveResult::Continuing(next_turn.change_turn()),
+                }
             }
         } else {
             MoveResult::IllegalMove(m)
         }
     }
 
-    /* TODO: implement
     /// ### promote
     ///
     /// Promote the pawn on the last line.
     /// Panics if there is no pawn to promote.
     /// Returns the updated board
-    pub fn promote(&self, promote: Promotion) -> Board {}
-    */
+    pub fn promote(&self, promotion: Promotion) -> Board {
+        let mut result = *self;
+        match result.promotion.take() {
+            Some(pos) => {
+                let color: Color = result.get_turn();
+                let promotion: Piece = match promotion {
+                    Promotion::Bishop => Piece::Bishop(color, pos),
+                    Promotion::Knight => Piece::Knight(color, pos),
+                    Promotion::Queen => Piece::Queen(color, pos),
+                    Promotion::Rook => Piece::Rook(color, pos),
+                };
+                result.add_piece(promotion);
+                // Change turn and return
+                result.change_turn()
+            }
+            None => panic!("There's no promotion available"),
+        }
+    }
 
     // -- private
 
@@ -757,13 +785,8 @@ impl Board {
         }
 
         let from_square = result.get_square(from);
-        if let Some(mut piece) = from_square.get_piece() {
+        if let Some(piece) = from_square.get_piece() {
             *from_square = Square::empty();
-
-            // TODO: remove this block
-            if piece.is_pawn() && (to.get_row() == 0 || to.get_row() == 7) {
-                piece = Piece::Queen(piece.get_color(), piece.get_pos());
-            }
 
             // Check en passant
             if piece.is_starting_pawn() && (from.get_row() - to.get_row()).abs() == 2 {
@@ -859,6 +882,24 @@ impl Board {
         }
 
         result
+    }
+
+    /// ### check_available_pawn_promotion
+    ///
+    /// Check whether there is a pawn promotion available
+    fn check_available_pawn_promotion(mut self) -> Self {
+        let mut promoting_pawn: Option<Position> = None;
+        // Search for a pawn which can be promoted
+        for square in self.squares.iter() {
+            if let Some(piece) = square.get_piece() {
+                if piece.is_promoting_pawn() && piece.get_color() == self.get_turn() {
+                    promoting_pawn = Some(piece.get_pos());
+                }
+            }
+        }
+        // Set promotion
+        self.promotion = promoting_pawn;
+        self
     }
 
     /// ### minimax
@@ -1690,7 +1731,32 @@ mod test {
             .piece(Piece::King(WHITE, E7))
             .build();
         assert_eq!(board.play_move(Move::Piece(E7, F8)), MoveResult::Stalemate);
-        // TODO: promote
+        // Verify promotion
+        let board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Pawn(WHITE, B7))
+            .piece(Piece::King(WHITE, E1))
+            .piece(Piece::King(BLACK, H8))
+            .build();
+        let mut test_board: Board = board.clone().apply_move(Move::Piece(B7, B8)); // Turn won't change
+        test_board.promotion = Some(B8);
+        assert_eq!(
+            board.play_move(Move::Piece(B7, B8)),
+            MoveResult::Promote(test_board, B8)
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn play_move_promotion_available() {
+        let mut board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Pawn(WHITE, B8))
+            .piece(Piece::King(WHITE, E1))
+            .piece(Piece::King(BLACK, H8))
+            .build();
+        board.promotion = Some(B8);
+        board.play_move(Move::Piece(E1, E2));
     }
 
     #[test]
@@ -1712,6 +1778,28 @@ mod test {
             board = b;
         }
         assert_eq!(board.get_taken_piece(), None);
+    }
+
+    #[test]
+    fn promote() {
+        let mut board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Pawn(WHITE, B8))
+            .piece(Piece::King(WHITE, E1))
+            .piece(Piece::King(BLACK, H8))
+            .build();
+        board.promotion = Some(B8);
+        assert_eq!(board.get_turn(), WHITE);
+        let board: Board = board.promote(Promotion::Queen);
+        assert_eq!(board.get_piece(B8).unwrap(), Piece::Queen(WHITE, B8));
+        assert_eq!(board.get_turn(), BLACK);
+    }
+
+    #[test]
+    #[should_panic]
+    fn promote_none() {
+        let board: Board = Board::default();
+        board.promote(Promotion::Queen);
     }
 
     #[test]
