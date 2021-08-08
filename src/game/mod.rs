@@ -5,11 +5,26 @@
 //! the chess game (e.g. the threefold repetition stallmate).
 //!
 
+// -- modules
+pub mod metadata;
 mod types;
+
+// -- imports
+use crate::Board;
+use metadata::Metadata;
+
+// -- export
 pub use types::{EndGame, GameResult};
 
 // TODO: game
-// TODO: player
 // TODO: THREEFOLD REPETITION
 // TODO: times; move tracks time; add_time, subtract_time; use duration
 // Moves are tuple of Move and Duration
+
+#[derive(Debug, Clone)]
+pub struct Game {
+    /// Current board state
+    board: Board,
+    /// Game metadata
+    metadata: Metadata,
+}

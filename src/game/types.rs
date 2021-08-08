@@ -61,3 +61,35 @@ impl From<MoveResult> for GameResult {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+    use crate::position::*;
+    use crate::{Board, WHITE};
+
+    #[test]
+    fn game_result_from_move_result() {
+        assert_eq!(
+            GameResult::from(MoveResult::Continuing(Board::default())),
+            GameResult::Continuing
+        );
+        assert_eq!(
+            GameResult::from(MoveResult::Promote(Board::default(), H2)),
+            GameResult::Promote(H2)
+        );
+        assert_eq!(
+            GameResult::from(MoveResult::IllegalMove(Move::KingSideCastle)),
+            GameResult::IllegalMove(Move::KingSideCastle),
+        );
+        assert_eq!(
+            GameResult::from(MoveResult::Stalemate),
+            GameResult::Ended(EndGame::Draw)
+        );
+        assert_eq!(
+            GameResult::from(MoveResult::Victory(WHITE)),
+            GameResult::Ended(EndGame::Victory(WHITE)),
+        );
+    }
+}

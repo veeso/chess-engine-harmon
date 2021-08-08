@@ -131,8 +131,8 @@ extern crate std;
 mod board;
 pub use board::{Board, BoardBuilder, MoveResult, Promotion};
 
-mod game;
-pub use game::GameResult;
+pub mod game;
+pub use game::{Game, GameResult};
 
 mod piece;
 pub use piece::Piece;
