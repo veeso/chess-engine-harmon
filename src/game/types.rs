@@ -4,6 +4,8 @@
 
 use crate::{Color, Move, MoveResult, Position};
 
+// -- results
+
 /// ## GameResult
 ///
 /// Describes the result of a game

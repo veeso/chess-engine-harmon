@@ -6,6 +6,7 @@
 //!
 
 // -- modules
+mod clock;
 pub mod metadata;
 mod types;
 
@@ -14,6 +15,7 @@ use crate::Board;
 use metadata::Metadata;
 
 // -- export
+pub use clock::Clock;
 pub use types::{EndGame, GameResult};
 
 // TODO: game
@@ -25,6 +27,8 @@ pub use types::{EndGame, GameResult};
 pub struct Game {
     /// Current board state
     board: Board,
+    /// Game clocks
+    clock: Clock,
     /// Game metadata
     metadata: Metadata,
 }
