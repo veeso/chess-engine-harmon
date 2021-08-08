@@ -43,6 +43,8 @@ pub struct Board {
     squares: [Square; 64],
     /// tracks eventually a possible en passant position
     en_passant: Option<Position>,
+    /// tracks eventually a taken piece on the last turn
+    taken_piece: Option<Piece>,
     // TODO: promotion: Option<Position>,
     /// castling rights for white player
     white_castling_rights: CastlingRights,
@@ -88,10 +90,9 @@ impl Board {
         Self {
             squares: [Square::empty(); 64],
             en_passant: None,
-
+            taken_piece: None,
             white_castling_rights: CastlingRights::default(),
             black_castling_rights: CastlingRights::default(),
-
             turn: WHITE,
         }
     }
@@ -141,6 +142,13 @@ impl Board {
     /// Get the position of the En-Passant square
     pub fn get_en_passant(&self) -> Option<Position> {
         self.en_passant
+    }
+
+    /// ### get_taken_piece
+    ///
+    /// Get, if any, the taken piece on the last turn
+    pub fn get_taken_piece(&self) -> Option<Piece> {
+        self.taken_piece
     }
 
     /// ### get_material_advantage
@@ -689,10 +697,13 @@ impl Board {
         if m == Move::Resign {
             MoveResult::Victory(!current_color)
         } else if self.is_legal_move(m, current_color) {
+            // Apply move and change turn
             let next_turn = self.apply_move(m).change_turn();
+            // If is checkmate, return victory
             if next_turn.is_checkmate() {
                 MoveResult::Victory(current_color)
             } else if next_turn.is_stalemate() {
+                // Check stalemate
                 MoveResult::Stalemate
             } else {
                 // TODO: check promotion
@@ -738,7 +749,9 @@ impl Board {
     fn move_piece(&self, from: Position, to: Position) -> Self {
         let mut result = *self;
         result.en_passant = None;
+        result.taken_piece = None;
 
+        // If off board, return self
         if from.is_off_board() || to.is_off_board() {
             return result;
         }
@@ -747,12 +760,19 @@ impl Board {
         if let Some(mut piece) = from_square.get_piece() {
             *from_square = Square::empty();
 
+            // TODO: remove this block
             if piece.is_pawn() && (to.get_row() == 0 || to.get_row() == 7) {
                 piece = Piece::Queen(piece.get_color(), piece.get_pos());
             }
 
+            // Check en passant
             if piece.is_starting_pawn() && (from.get_row() - to.get_row()).abs() == 2 {
                 result.en_passant = Some(to.pawn_back(piece.get_color()))
+            }
+
+            // Check if there is an enemy piece at `to`
+            if result.has_enemy_piece(to, result.get_turn()) {
+                result.taken_piece = result.get_piece(to);
             }
 
             result.add_piece(piece.move_to(to));
@@ -1671,6 +1691,27 @@ mod test {
             .build();
         assert_eq!(board.play_move(Move::Piece(E7, F8)), MoveResult::Stalemate);
         // TODO: promote
+    }
+
+    #[test]
+    fn taken_piece() {
+        let mut board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Pawn(WHITE, D4))
+            .piece(Piece::Queen(BLACK, E5))
+            .piece(Piece::King(WHITE, E1))
+            .piece(Piece::King(BLACK, H8))
+            .build();
+        if let MoveResult::Continuing(b) = board.play_move(Move::Piece(D4, E5)) {
+            board = b;
+        }
+        // Verify taken piece
+        assert_eq!(board.get_taken_piece().unwrap(), Piece::Queen(BLACK, E5));
+        // Make another move (taken piece becomes None)
+        if let MoveResult::Continuing(b) = board.play_move(Move::Piece(H8, G7)) {
+            board = b;
+        }
+        assert_eq!(board.get_taken_piece(), None);
     }
 
     #[test]
