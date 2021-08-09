@@ -425,6 +425,22 @@ mod test {
         assert_eq!(metadata.round, None);
         assert_eq!(metadata.site, None);
         assert_eq!(metadata.white, None);
+        let metadata: Metadata = Metadata {
+            black: None,
+            date: None,
+            event: None,
+            result: Result::Unknown,
+            round: None,
+            site: None,
+            white: None,
+        };
+        assert_eq!(metadata.black, None);
+        assert_eq!(metadata.date, None);
+        assert_eq!(metadata.event, None);
+        assert_eq!(metadata.result, Result::Unknown);
+        assert_eq!(metadata.round, None);
+        assert_eq!(metadata.site, None);
+        assert_eq!(metadata.white, None);
     }
 
     #[test]

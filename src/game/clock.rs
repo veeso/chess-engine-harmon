@@ -72,6 +72,16 @@ mod test {
     use pretty_assertions::assert_eq;
 
     #[test]
+    fn clock_struct() {
+        let clock: Clock = Clock {
+            black: Duration::from_secs(3600),
+            white: Duration::from_secs(1800),
+        };
+        assert_eq!(clock.black, Duration::from_secs(3600));
+        assert_eq!(clock.white, Duration::from_secs(1800));
+    }
+
+    #[test]
     fn new_clock() {
         let clock: Clock = Clock::new(Duration::from_secs(3600), Duration::from_secs(1800));
         assert_eq!(clock.white, Duration::from_secs(3600));

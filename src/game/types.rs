@@ -141,6 +141,18 @@ mod test {
 
     #[test]
     fn game_move() {
+        let m: GameMove = GameMove {
+            itself: Move::Resign,
+            turn: 2,
+            time: Duration::from_secs(5),
+            piece_taken: None,
+            promotion: None,
+        };
+        assert_eq!(m.itself, Move::Resign);
+        assert_eq!(m.turn, 2);
+        assert_eq!(m.time, Duration::from_secs(5));
+        assert_eq!(m.piece_taken, None);
+        assert_eq!(m.promotion, None);
         let m: GameMove = GameMove::new(Move::Resign, 2, Duration::from_secs(5), None, None);
         assert_eq!(m.itself, Move::Resign);
         assert_eq!(m.turn, 2);

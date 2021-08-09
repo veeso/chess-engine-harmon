@@ -59,6 +59,14 @@ mod test {
 
     #[test]
     fn location() {
+        let location: Location = Location {
+            city: "moimacco".to_string(),
+            region: "friuli-venezia giulia".to_string(),
+            country: Country::Italy,
+        };
+        assert_eq!(location.city(), "moimacco");
+        assert_eq!(location.country(), Country::Italy);
+        assert_eq!(location.region(), "friuli-venezia giulia");
         let location: Location = Location::new("moimacco", "friuli-venezia giulia", Country::Italy);
         assert_eq!(location.city(), "moimacco");
         assert_eq!(location.country(), Country::Italy);
