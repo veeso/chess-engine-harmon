@@ -146,6 +146,13 @@ impl Board {
         self.en_passant
     }
 
+    /// ### get_promoting_pawn
+    ///
+    /// Get the promoting pawn
+    pub fn get_promoting_pawn(&self) -> Option<Position> {
+        self.promotion
+    }
+
     /// ### get_taken_piece
     ///
     /// Get, if any, the taken piece on the last turn

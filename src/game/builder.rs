@@ -2,7 +2,7 @@
 //!
 //! this module exposes a helper struct to build `Game` struct
 
-use super::{Board, Clock, Duration, Game, GameMove, Metadata};
+use super::{Board, Clock, Duration, Game, GameMove, Metadata, Options};
 
 use alloc::vec::Vec;
 
@@ -54,6 +54,14 @@ impl GameBuilder {
         self
     }
 
+    /// ### options
+    ///
+    /// Set game options
+    pub fn options(mut self, options: Options) -> Self {
+        self.game.as_mut().unwrap().options = options;
+        self
+    }
+
     /// ### build
     ///
     /// Take `Game` structure out from builder
@@ -77,6 +85,7 @@ mod test {
             .metadata(Metadata::default().with_date(2021, 08, 08))
             .moves(vec![GameMove::new(
                 Move::Resign,
+                Color::White,
                 1,
                 Duration::from_secs(60),
                 None,
@@ -91,6 +100,7 @@ mod test {
             game.clock.remaining_time(),
             (Duration::from_secs(3), Duration::from_secs(5))
         );
+        // TODO: add option test
     }
 
     #[test]

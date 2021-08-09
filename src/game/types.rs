@@ -28,6 +28,8 @@ pub enum GameResult {
     /// moves that put the player in check, (for example, moving a pinned piece),
     /// are also illegal.
     IllegalMove(Move),
+    /// Pawn promotion is not allowed, since there's no pawn to promote
+    IllegalPromotion,
 }
 
 /// ## EndGame
@@ -79,6 +81,8 @@ pub struct GameMove {
     pub itself: Move,
     /// the turn number (1..65535)
     pub turn: u16,
+    /// Player color
+    pub player: Color,
     /// the time taken to think the move
     pub time: Duration,
     /// the piece taken from the opponent
@@ -93,6 +97,7 @@ impl GameMove {
     /// Instantiates a new GameMove
     pub fn new(
         m: Move,
+        player: Color,
         turn: u16,
         time: Duration,
         piece_taken: Option<Piece>,
@@ -100,6 +105,7 @@ impl GameMove {
     ) -> Self {
         Self {
             itself: m,
+            player,
             turn,
             time,
             piece_taken,
@@ -144,18 +150,28 @@ mod test {
         let m: GameMove = GameMove {
             itself: Move::Resign,
             turn: 2,
+            player: Color::White,
             time: Duration::from_secs(5),
             piece_taken: None,
             promotion: None,
         };
         assert_eq!(m.itself, Move::Resign);
         assert_eq!(m.turn, 2);
+        assert_eq!(m.player, Color::White);
         assert_eq!(m.time, Duration::from_secs(5));
         assert_eq!(m.piece_taken, None);
         assert_eq!(m.promotion, None);
-        let m: GameMove = GameMove::new(Move::Resign, 2, Duration::from_secs(5), None, None);
+        let m: GameMove = GameMove::new(
+            Move::Resign,
+            Color::Black,
+            2,
+            Duration::from_secs(5),
+            None,
+            None,
+        );
         assert_eq!(m.itself, Move::Resign);
         assert_eq!(m.turn, 2);
+        assert_eq!(m.player, Color::Black);
         assert_eq!(m.time, Duration::from_secs(5));
         assert_eq!(m.piece_taken, None);
         assert_eq!(m.promotion, None);
