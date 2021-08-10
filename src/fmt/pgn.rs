@@ -2,6 +2,8 @@
 
 // <https://en.wikipedia.org/wiki/Portable_Game_Notation>
 
+// TODO: time uses TimeControl ?
+
 use alloc::{
     string::{String, ToString},
     vec::Vec,

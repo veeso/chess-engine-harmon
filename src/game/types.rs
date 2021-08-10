@@ -61,6 +61,17 @@ pub enum VictoryReason {
     Timeout,
 }
 
+impl GameResult {
+    /// ### was_illegal_move
+    ///
+    /// Returns whether game result was an illegal move
+    pub fn was_illegal_move(&self) -> bool {
+        matches!(self, GameResult::IllegalMove(_))
+    }
+}
+
+// -- event
+
 /// ## GameEvent
 ///
 /// Describes an event "raised" after a move is played
@@ -73,6 +84,8 @@ pub enum GameEvent {
     ThreefoldRepetition,
     /// A fivefold repetition has been detected.
     FivefoldRepetition,
+    /// No event to report
+    None,
 }
 
 // -- moves
@@ -156,5 +169,14 @@ mod test {
         assert_eq!(m.time, Duration::from_secs(5));
         assert_eq!(m.piece_taken, None);
         assert_eq!(m.promotion, None);
+    }
+
+    #[test]
+    fn game_illegal_move() {
+        assert_eq!(
+            GameResult::IllegalMove(Move::Resign).was_illegal_move(),
+            true
+        );
+        assert_eq!(GameResult::Continuing.was_illegal_move(), false);
     }
 }

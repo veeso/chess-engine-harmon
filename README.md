@@ -4,7 +4,7 @@
   <img src="/assets/harmon.svg" width="256" height="256" />
 
   <p>
-    <strong>A dependency-free chess engine library written in Rust.</strong>
+    <strong>A feature-rich chess engine library written in Rust, designed to run everywhere.</strong>
   </p>
 </div>
 

@@ -16,17 +16,14 @@ mod options;
 mod types;
 
 // -- imports
-use crate::{Board, Color, Move, Piece, Position, Promotion};
+use crate::{Board, Color, Move, MoveResult, Piece, Position, Promotion};
 use metadata::{Metadata, Result as MetadataResult};
 
 // -- export
 pub use builder::GameBuilder;
 pub use clock::Clock;
 pub use options::Options;
-pub use types::{EndGame, GameMove, GameResult};
-
-// TODO: game
-// TODO: THREEFOLD REPETITION
+pub use types::{EndGame, GameEvent, GameMove, GameResult, VictoryReason};
 
 /// ## Game
 ///
@@ -132,37 +129,83 @@ impl Game {
 
     // -- game
 
-    // TODO: play
-    pub fn play_move(&mut self, m: Move) -> GameResult {
+    /// ### play_move
+    ///
+    /// play a move.
+    /// You must also provide the time taken to move the piece.
+    pub fn play_move(&mut self, m: Move, time: Duration) -> (GameResult, GameEvent) {
+        let (player, turn): (Color, u16) = self.turn();
+        // Play move
+        let result: MoveResult = self.board.play_move(m);
+        // Handle game result
+        let mut result: GameResult = self.handle_move_result(result, None);
+        // Push move, unless illegal
+        if !result.was_illegal_move() {
+            self.push_move(m, player, turn, time, self.board().get_taken_piece());
+        }
+        let mut event: GameEvent = GameEvent::None;
+        // get promotion event
+        if let Some(promotion) = self.board().get_promoting_pawn() {
+            event = GameEvent::Promotion(promotion);
+        }
+        // Check threefold repetition
+        if self.is_threefold_repetition() {
+            // If option is enabled, draw game
+            if self.options.threefold_repetition {
+                // Draw game
+                self.set_result_drawn();
+                result = GameResult::Ended(EndGame::Draw);
+            }
+            event = GameEvent::ThreefoldRepetition;
+        }
+        // Check fivefold repetition
+        if self.is_fivefold_repetition() && self.options.fivefold_repetition {
+            // Draw game
+            self.set_result_drawn();
+            result = GameResult::Ended(EndGame::Draw);
+            event = GameEvent::FivefoldRepetition;
+        }
+        // If is checkmate, set win result
+        if let GameResult::Ended(EndGame::Victory(player, _)) = result {
+            self.set_result_win(player);
+        }
+        // Return result
+        (result, event)
+    }
 
-        // TODO: handle threefold repetitions
-        // TODO: push move
+    /// ### resign
+    ///
+    /// Resign match for current player
+    pub fn resign(&mut self) -> GameResult {
+        self.handle_move_result(self.board.play_move(Move::Resign), None)
     }
 
     /// ### draw
     ///
     /// Draw game
-    pub fn draw(&mut self) {
-        self.metadata.set_result(MetadataResult::DrawnGame);
+    pub fn draw(&mut self) -> GameResult {
+        self.set_result_drawn();
+        GameResult::Ended(EndGame::Draw)
     }
 
     /// ### promote
     ///
     /// Promote the pawn on the last line.
     /// Returns the GameResult.
-    /// If there's no pawn to promote, returns `IllegalPromotion`
-    pub fn promote(&mut self, promotion: Promotion) -> GameResult {
+    /// If there's no pawn to promote, returns `Err(())`
+    pub fn promote(&mut self, promotion: Promotion) -> Result<GameResult, ()> {
+        // TODO: replace this empty error
         if self.board.get_promoting_pawn().is_some() {
-            // Promote piece
-            self.board = self.board.promote(promotion);
-            // patch last move
-            self.patch_last_move_promotion(promotion);
-            // Return continuing
-            GameResult::Continuing
+            // Promote piece and return
+            Ok(self.handle_move_result(self.board.promote(promotion), Some(promotion)))
         } else {
-            GameResult::IllegalPromotion
+            Err(())
         }
     }
+
+    // -- clocks
+
+    // TODO: handle clocks
 
     // -- validation
 
@@ -176,6 +219,42 @@ impl Game {
     }
 
     // -- private
+
+    // -- result
+
+    /// ### handle_move_result
+    ///
+    /// Given a move result, returns a `GameResult` after updating the board
+    /// If the last move has promoted a pawn, the history is patched with the promotion.
+    fn handle_move_result(
+        &mut self,
+        res: MoveResult,
+        has_promoted: Option<Promotion>,
+    ) -> GameResult {
+        // Patch last move
+        if let Some(promotion) = has_promoted {
+            self.patch_last_move_promotion(promotion);
+        }
+        match res {
+            MoveResult::Continuing(board) | MoveResult::Promote(board, _) => {
+                // Update board
+                self.board = board;
+                // Return continuing
+                GameResult::Continuing
+            }
+            MoveResult::Victory(color) => {
+                // Set result and return game ended
+                self.set_result_win(color);
+                GameResult::Ended(EndGame::Victory(color, VictoryReason::Checkmate))
+            }
+            MoveResult::Stalemate => {
+                // Set result and return game ended
+                self.set_result_drawn();
+                GameResult::Ended(EndGame::Draw)
+            }
+            MoveResult::IllegalMove(m) => GameResult::IllegalMove(m),
+        }
+    }
 
     // -- repetitions
 
@@ -213,15 +292,16 @@ impl Game {
     /// ### push_move
     ///
     /// Push move to history
-    fn push_move(&mut self, m: Move, player: Color, time: Duration, piece_taken: Option<Piece>) {
-        self.moves.push(GameMove::new(
-            m,
-            player,
-            self.get_turn(),
-            time,
-            piece_taken,
-            None,
-        ));
+    fn push_move(
+        &mut self,
+        m: Move,
+        player: Color,
+        turn: u16,
+        time: Duration,
+        piece_taken: Option<Piece>,
+    ) {
+        self.moves
+            .push(GameMove::new(m, player, turn, time, piece_taken, None));
     }
 
     /// ### get_turn
@@ -246,5 +326,24 @@ impl Game {
     /// Get a mutable reference to the last move
     fn last_move(&mut self) -> Option<&mut GameMove> {
         self.moves.iter_mut().last()
+    }
+
+    // -- metadata result
+
+    /// ### set_result_win
+    ///
+    /// Set result to win for provided player
+    fn set_result_win(&mut self, color: Color) {
+        self.metadata.set_result(match color {
+            Color::Black => MetadataResult::BlackWins,
+            Color::White => MetadataResult::WhiteWins,
+        });
+    }
+
+    /// ### set_result_drawn
+    ///
+    /// Set result to drawn
+    fn set_result_drawn(&mut self) {
+        self.metadata.set_result(MetadataResult::DrawnGame);
     }
 }
