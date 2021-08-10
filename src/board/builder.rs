@@ -136,7 +136,7 @@ impl BoardBuilder {
     ///
     /// Set first player moving
     pub fn player_moving(mut self, color: Color) -> Self {
-        self.board.set_turn(color);
+        self.board.turn = color;
         self
     }
 

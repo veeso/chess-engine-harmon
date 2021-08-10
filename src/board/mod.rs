@@ -125,8 +125,8 @@ impl Board {
             .row(Piece::Pawn(WHITE, A2))
             .row(Piece::Pawn(WHITE, A3))
             .row(Piece::Pawn(WHITE, A4))
+            .player_moving(BLACK)
             .build()
-            .change_turn() // NOTE: Black moves first
     }
 
     // -- getters
@@ -738,8 +738,10 @@ impl Board {
     ///
     /// Promote the pawn on the last line.
     /// Panics if there is no pawn to promote.
-    /// Returns the updated board
-    pub fn promote(&self, promotion: Promotion) -> Board {
+    /// Returns the move result.
+    /// In this case the result will be `Continuing`, `Stalemate` or `Victory` in case the promotion
+    /// causes a checkmate.
+    pub fn promote(&self, promotion: Promotion) -> MoveResult {
         let mut result = *self;
         match result.promotion.take() {
             Some(pos) => {
@@ -752,7 +754,15 @@ impl Board {
                 };
                 result.add_piece(promotion);
                 // Change turn and return
-                result.change_turn()
+                let result = result.change_turn();
+                if result.is_checkmate() {
+                    MoveResult::Victory(color)
+                } else if result.is_stalemate() {
+                    // Check stalemate
+                    MoveResult::Stalemate
+                } else {
+                    MoveResult::Continuing(result)
+                }
             }
             None => panic!("There's no promotion available"),
         }
@@ -1788,18 +1798,59 @@ mod test {
     }
 
     #[test]
-    fn promote() {
+    fn promote_continuing() {
         let mut board: Board = BoardBuilder::default()
             .enable_castling()
             .piece(Piece::Pawn(WHITE, B8))
             .piece(Piece::King(WHITE, E1))
             .piece(Piece::King(BLACK, H8))
+            .player_moving(WHITE)
             .build();
         board.promotion = Some(B8);
-        assert_eq!(board.get_turn(), WHITE);
-        let board: Board = board.promote(Promotion::Queen);
-        assert_eq!(board.get_piece(B8).unwrap(), Piece::Queen(WHITE, B8));
-        assert_eq!(board.get_turn(), BLACK);
+        let test_board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Queen(WHITE, B8))
+            .piece(Piece::King(WHITE, E1))
+            .piece(Piece::King(BLACK, H8))
+            .player_moving(BLACK)
+            .build();
+        assert_eq!(
+            board.promote(Promotion::Queen),
+            MoveResult::Continuing(test_board)
+        );
+    }
+
+    #[test]
+    fn promote_checkmate() {
+        let mut board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Pawn(WHITE, B8))
+            .piece(Piece::King(WHITE, E1))
+            .piece(Piece::Pawn(BLACK, H7))
+            .piece(Piece::Pawn(BLACK, G7))
+            .piece(Piece::King(BLACK, H8))
+            .player_moving(WHITE)
+            .build();
+        board.promotion = Some(B8);
+        assert_eq!(board.promote(Promotion::Queen), MoveResult::Victory(WHITE));
+    }
+
+    #[test]
+    fn promote_stalemate() {
+        let mut board: Board = BoardBuilder::default()
+            .enable_castling()
+            .piece(Piece::Pawn(WHITE, C8))
+            .piece(Piece::King(WHITE, C1))
+            .piece(Piece::Pawn(WHITE, D5))
+            .piece(Piece::Pawn(WHITE, E5))
+            .piece(Piece::Pawn(WHITE, F7))
+            .piece(Piece::Knight(WHITE, D6))
+            .piece(Piece::Knight(WHITE, E6))
+            .piece(Piece::King(BLACK, E7))
+            .player_moving(WHITE)
+            .build();
+        board.promotion = Some(C8);
+        assert_eq!(board.promote(Promotion::Queen), MoveResult::Stalemate);
     }
 
     #[test]
