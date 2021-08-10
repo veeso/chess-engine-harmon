@@ -132,6 +132,14 @@ impl BoardBuilder {
         self
     }
 
+    /// ### player_moving
+    ///
+    /// Set first player moving
+    pub fn player_moving(mut self, color: Color) -> Self {
+        self.board.set_turn(color);
+        self
+    }
+
     /// ### build
     ///
     /// Get board with selected options
@@ -231,6 +239,12 @@ mod test {
             .build();
         assert_eq!(board.get_piece(A1).unwrap(), Piece::Rook(WHITE, A1));
         assert_eq!(board.get_piece(H8).unwrap(), Piece::Rook(BLACK, H8));
+    }
+
+    #[test]
+    fn player_moving() {
+        let board: Board = BoardBuilder::default().player_moving(BLACK).build();
+        assert_eq!(board.get_turn(), BLACK);
     }
 
     #[test]
