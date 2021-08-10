@@ -60,7 +60,9 @@
 //!         MoveResult::Promote(next_board, pos) => {
 //!             println!("{}", next_board);
 //!             println!("Pawn promotion available at {}", pos);
-//!             board = next_board.promote(Promotion::Queen);
+//!             if let MoveResult::Continuing(b) = next_board.promote(Promotion::Queen) {
+//!                 board = b;
+//!             }
 //!         }
 //!         
 //!         MoveResult::Victory(winner) => {
