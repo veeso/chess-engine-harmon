@@ -28,8 +28,8 @@ impl Clock {
     /// ### add_time
     ///
     /// Add time to player's clock
-    pub fn add_time(&mut self, color: Color, amount: Duration) {
-        match color {
+    pub fn add_time(&mut self, player: Color, amount: Duration) {
+        match player {
             Color::Black => self.black += amount,
             Color::White => self.white += amount,
         };
@@ -38,18 +38,18 @@ impl Clock {
     /// ### sub_time
     ///
     /// Subtract time from player's clock
-    pub fn sub_time(&mut self, color: Color, amount: Duration) {
-        match color {
-            Color::Black => self.black -= amount,
-            Color::White => self.white -= amount,
+    pub fn sub_time(&mut self, player: Color, amount: Duration) {
+        match player {
+            Color::Black => self.black = self.black.checked_sub(amount).unwrap_or(Duration::ZERO),
+            Color::White => self.white = self.white.checked_sub(amount).unwrap_or(Duration::ZERO),
         };
     }
 
     /// ### set_time
     ///
     /// Set new remaining time for player's clock
-    pub fn set_time(&mut self, color: Color, time: Duration) {
-        match color {
+    pub fn set_time(&mut self, player: Color, time: Duration) {
+        match player {
             Color::Black => self.black = time,
             Color::White => self.white = time,
         };
@@ -62,6 +62,23 @@ impl Clock {
     /// while the second element is remaining time for black player
     pub fn remaining_time(&self) -> (Duration, Duration) {
         (self.white, self.black)
+    }
+
+    /// ### player_remaining_time
+    ///
+    /// Returns remaining time for player
+    pub fn player_remaining_time(&self, player: Color) -> Duration {
+        match player {
+            Color::Black => self.black,
+            Color::White => self.white,
+        }
+    }
+
+    /// ### timeout
+    ///
+    /// Returns whether player's time is zero
+    pub fn timeout(&self, player: Color) -> bool {
+        self.player_remaining_time(player).is_zero()
     }
 }
 
@@ -98,20 +115,21 @@ mod test {
     }
 
     #[test]
-    fn add_and_subtract_and_set_time() {
-        let mut clock: Clock = Clock::new(Duration::from_secs(300), Duration::from_secs(300));
-        // sub time
-        clock.sub_time(Color::White, Duration::from_secs(5));
+    fn player_remaining_time() {
+        let clock: Clock = Clock::new(Duration::from_secs(3600), Duration::from_secs(1800));
         assert_eq!(
-            clock.remaining_time(),
-            (Duration::from_secs(295), Duration::from_secs(300))
+            clock.player_remaining_time(Color::Black),
+            (Duration::from_secs(1800))
         );
-        clock.sub_time(Color::Black, Duration::from_secs(10));
         assert_eq!(
-            clock.remaining_time(),
-            (Duration::from_secs(295), Duration::from_secs(290))
+            clock.player_remaining_time(Color::White),
+            (Duration::from_secs(3600))
         );
-        // add time
+    }
+
+    #[test]
+    fn add_time() {
+        let mut clock: Clock = Clock::new(Duration::from_secs(295), Duration::from_secs(290));
         clock.add_time(Color::White, Duration::from_secs(2));
         assert_eq!(
             clock.remaining_time(),
@@ -122,16 +140,52 @@ mod test {
             clock.remaining_time(),
             (Duration::from_secs(297), Duration::from_secs(293))
         );
-        // set time
+        // Checked sub (underflow)
+        let mut clock: Clock = Clock::new(Duration::from_secs(10), Duration::from_secs(23));
+        clock.sub_time(Color::White, Duration::from_secs(15));
+        assert_eq!(
+            clock.remaining_time(),
+            (Duration::from_secs(0), Duration::from_secs(23))
+        );
+    }
+
+    #[test]
+    fn sub_time() {
+        let mut clock: Clock = Clock::new(Duration::from_secs(300), Duration::from_secs(300));
+        clock.sub_time(Color::White, Duration::from_secs(5));
+        assert_eq!(
+            clock.remaining_time(),
+            (Duration::from_secs(295), Duration::from_secs(300))
+        );
+        clock.sub_time(Color::Black, Duration::from_secs(10));
+        assert_eq!(
+            clock.remaining_time(),
+            (Duration::from_secs(295), Duration::from_secs(290))
+        );
+    }
+
+    #[test]
+    fn set_time() {
+        let mut clock: Clock = Clock::new(Duration::from_secs(300), Duration::from_secs(300));
         clock.set_time(Color::White, Duration::from_secs(60));
         assert_eq!(
             clock.remaining_time(),
-            (Duration::from_secs(60), Duration::from_secs(293))
+            (Duration::from_secs(60), Duration::from_secs(300))
         );
         clock.set_time(Color::Black, Duration::from_secs(90));
         assert_eq!(
             clock.remaining_time(),
             (Duration::from_secs(60), Duration::from_secs(90))
         );
+    }
+
+    #[test]
+    fn timeout() {
+        let clock: Clock = Clock::new(Duration::from_secs(0), Duration::from_secs(300));
+        assert_eq!(clock.timeout(Color::White), true);
+        assert_eq!(clock.timeout(Color::Black), false);
+        let clock: Clock = Clock::new(Duration::from_secs(60), Duration::from_secs(0));
+        assert_eq!(clock.timeout(Color::White), false);
+        assert_eq!(clock.timeout(Color::Black), true);
     }
 }

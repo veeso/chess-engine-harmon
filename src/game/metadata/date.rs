@@ -1,7 +1,7 @@
 //! # Date
 //!
 //! Date module for metadata.
-//! Since this library is no-std and dependency-free, it exposes an internal Date type with validation
+//! Since this library is no-std, it exposes an internal Date type with validation
 
 /// ## Date
 ///

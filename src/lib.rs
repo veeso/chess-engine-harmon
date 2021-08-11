@@ -1,6 +1,6 @@
 //! # harmon
 //!
-//! [harmon](https://github.com/veeso/harmon) is a dependency-free chess engine library written in rust.
+//! [harmon](https://github.com/veeso/harmon) is a feature-rich chess engine library written in rust.
 //! It is a fork of the original [chess engine](https://github.com/adam-mcdaniel/chess-engine) library for rust written by Adam McDaniel.
 //!
 //! Harmon comes with these features:
@@ -124,6 +124,8 @@
 #![no_std]
 #[macro_use]
 extern crate alloc;
+#[macro_use]
+extern crate bitflags;
 
 #[cfg(test)] // NOTE: Enable std for test units
 extern crate std;
@@ -134,7 +136,7 @@ mod board;
 pub use board::{Board, BoardBuilder, MoveResult, Promotion};
 
 pub mod game;
-pub use game::{Game, GameResult};
+pub use game::{Game, GameBuilder, GameError, GameMove, GameResult, GameState};
 
 mod piece;
 pub use piece::Piece;

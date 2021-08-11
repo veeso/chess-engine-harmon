@@ -3,7 +3,6 @@
 //! The game module is the highest level library api. This module exposes the `Game` type which, along to the board, contains also
 //! the metadata of a match and the played moves. In addition to this, it also adds more sophisticated game logics to complete
 //! the chess game (e.g. the threefold repetition stallmate).
-//!
 
 use alloc::vec::Vec;
 use core::time::Duration;
@@ -13,6 +12,7 @@ mod builder;
 mod clock;
 pub mod metadata;
 mod options;
+mod result;
 mod types;
 
 // -- imports
@@ -23,7 +23,8 @@ use metadata::{Metadata, Result as MetadataResult};
 pub use builder::GameBuilder;
 pub use clock::Clock;
 pub use options::Options;
-pub use types::{EndGame, GameEvent, GameMove, GameResult, VictoryReason};
+pub use result::{EndGame, GameError, GameEvent, GameResult, GameState, VictoryReason};
+pub use types::GameMove;
 
 /// ## Game
 ///
@@ -113,18 +114,18 @@ impl Game {
         self.board().get_piece_legal_moves(pos)
     }
 
-    /// ### can_promote
+    /// ### in_progress
     ///
-    /// Returns whether current player can promote pawn
-    pub fn can_promote(&self) -> bool {
-        self.board().get_promoting_pawn().is_some()
+    /// Returns whether current match is still in progress
+    pub fn in_progress(&self) -> bool {
+        matches!(self.metadata().result(), MetadataResult::InProgress)
     }
 
-    /// ### is_in_check
+    /// ### has_terminated
     ///
-    /// Returns whether current player is in check
-    pub fn is_in_check(&self) -> bool {
-        self.board().is_in_check(self.board().get_turn())
+    /// Returns whether current match has terminated
+    pub fn has_terminated(&self) -> bool {
+        !self.in_progress()
     }
 
     // -- game
@@ -133,44 +134,33 @@ impl Game {
     ///
     /// play a move.
     /// You must also provide the time taken to move the piece.
-    pub fn play_move(&mut self, m: Move, time: Duration) -> (GameResult, GameEvent) {
+    pub fn play_move(&mut self, m: Move, time: Duration) -> GameResult {
         let (player, turn): (Color, u16) = self.turn();
+        // sub time and check timeout
+        self.sub_time(player, time);
+        if self.clock.timeout(player) {
+            self.set_result_win(!player);
+            return GameResult::Ok((
+                GameState::Ended(EndGame::Victory(!player, VictoryReason::Timeout)),
+                GameEvent::NONE,
+            ));
+        }
         // Play move
         let result: MoveResult = self.board.play_move(m);
         // Handle game result
-        let mut result: GameResult = self.handle_move_result(result, None);
+        let result: GameResult = self.handle_move_result(result, None);
         // Push move, unless illegal
-        if !result.was_illegal_move() {
+        if !result::was_illegal_move(&result) {
             self.push_move(m, player, turn, time, self.board().get_taken_piece());
         }
-        let mut event: GameEvent = GameEvent::None;
-        // get promotion event
-        if let Some(promotion) = self.board().get_promoting_pawn() {
-            event = GameEvent::Promotion(promotion);
-        }
-        // Check threefold repetition
-        if self.is_threefold_repetition() {
-            // If option is enabled, draw game
-            if self.options.threefold_repetition {
-                // Draw game
-                self.set_result_drawn();
-                result = GameResult::Ended(EndGame::Draw);
-            }
-            event = GameEvent::ThreefoldRepetition;
-        }
-        // Check fivefold repetition
-        if self.is_fivefold_repetition() && self.options.fivefold_repetition {
-            // Draw game
-            self.set_result_drawn();
-            result = GameResult::Ended(EndGame::Draw);
-            event = GameEvent::FivefoldRepetition;
-        }
+        // Check events
+        let result: GameResult = self.check_events(result);
         // If is checkmate, set win result
-        if let GameResult::Ended(EndGame::Victory(player, _)) = result {
+        if let Ok((GameState::Ended(EndGame::Victory(player, _)), _)) = result {
             self.set_result_win(player);
         }
         // Return result
-        (result, event)
+        result
     }
 
     /// ### resign
@@ -185,27 +175,46 @@ impl Game {
     /// Draw game
     pub fn draw(&mut self) -> GameResult {
         self.set_result_drawn();
-        GameResult::Ended(EndGame::Draw)
+        Ok((GameState::Ended(EndGame::Draw), GameEvent::NONE))
     }
 
     /// ### promote
     ///
     /// Promote the pawn on the last line.
-    /// Returns the GameResult.
-    /// If there's no pawn to promote, returns `Err(())`
-    pub fn promote(&mut self, promotion: Promotion) -> Result<GameResult, ()> {
-        // TODO: replace this empty error
+    /// Returns the GameState.
+    /// If there's no pawn to promote, returns `Err(GameError::CantPromote)`
+    pub fn promote(&mut self, promotion: Promotion) -> GameResult {
         if self.board.get_promoting_pawn().is_some() {
             // Promote piece and return
-            Ok(self.handle_move_result(self.board.promote(promotion), Some(promotion)))
+            self.handle_move_result(self.board.promote(promotion), Some(promotion))
         } else {
-            Err(())
+            Err(GameError::CantPromote)
         }
     }
 
     // -- clocks
 
-    // TODO: handle clocks
+    /// ### add_time
+    ///
+    /// Increment time for player for the amount provided
+    pub fn add_time(&mut self, player: Color, time: Duration) {
+        self.clock.add_time(player, time);
+    }
+
+    /// ### sub_time
+    ///
+    /// Subtract time for player for the amount provided.
+    /// Use then `timeout()` to check whether the time's up
+    pub fn sub_time(&mut self, player: Color, time: Duration) {
+        self.clock.sub_time(player, time);
+    }
+
+    /// ### timeout
+    ///
+    /// Returns whether time's out for provided player
+    pub fn timeout(&self, player: Color) -> bool {
+        self.clock.timeout(player)
+    }
 
     // -- validation
 
@@ -221,6 +230,40 @@ impl Game {
     // -- private
 
     // -- result
+
+    /// ### check_events
+    ///
+    /// Check events and put them in game results
+    fn check_events(&mut self, mut result: GameResult) -> GameResult {
+        // Get check event
+        if self.board().is_check() {
+            result = result::set_result_event(result, GameEvent::CHECK);
+        }
+        // Get checkmate event
+        if self.board().is_checkmate() {
+            result = result::set_result_event(result, GameEvent::CHECKMATE);
+        }
+        // get promotion event
+        if self.board().get_promoting_pawn().is_some() {
+            result = result::set_result_event(result, GameEvent::PROMOTION_AVAILABLE);
+        }
+        // Check threefold repetition
+        if self.is_threefold_repetition() {
+            result = result::set_result_event(result, GameEvent::THREEFOLD_REPETITION);
+            // If option is enabled, draw game
+            if self.options.threefold_repetition {
+                // Draw game
+                self.set_result_drawn();
+            }
+        }
+        // Check fivefold repetition
+        if self.is_fivefold_repetition() && self.options.fivefold_repetition {
+            // Draw game
+            self.set_result_drawn();
+            result = result::set_result_event(result, GameEvent::FIVEFOLD_REPETITION);
+        }
+        result
+    }
 
     /// ### handle_move_result
     ///
@@ -240,19 +283,22 @@ impl Game {
                 // Update board
                 self.board = board;
                 // Return continuing
-                GameResult::Continuing
+                Ok((GameState::Continuing, GameEvent::NONE))
             }
             MoveResult::Victory(color) => {
                 // Set result and return game ended
                 self.set_result_win(color);
-                GameResult::Ended(EndGame::Victory(color, VictoryReason::Checkmate))
+                Ok((
+                    GameState::Ended(EndGame::Victory(color, VictoryReason::Checkmate)),
+                    GameEvent::NONE,
+                ))
             }
             MoveResult::Stalemate => {
                 // Set result and return game ended
                 self.set_result_drawn();
-                GameResult::Ended(EndGame::Draw)
+                Ok((GameState::Ended(EndGame::Draw), GameEvent::NONE))
             }
-            MoveResult::IllegalMove(m) => GameResult::IllegalMove(m),
+            MoveResult::IllegalMove(m) => Err(GameError::IllegalMove(m)),
         }
     }
 
@@ -346,4 +392,12 @@ impl Game {
     fn set_result_drawn(&mut self) {
         self.metadata.set_result(MetadataResult::DrawnGame);
     }
+}
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+
+    use pretty_assertions::assert_eq;
 }

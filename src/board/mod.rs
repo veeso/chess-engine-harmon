@@ -389,18 +389,6 @@ impl Board {
         false
     }
 
-    /// ### is_in_check
-    ///
-    /// Get whether or not the king of a given color is in check.
-    #[inline]
-    pub fn is_in_check(&self, color: Color) -> bool {
-        if let Some(king_pos) = self.get_king_pos(color) {
-            self.is_threatened(king_pos, color)
-        } else {
-            false
-        }
-    }
-
     /// ### can_kingside_castle
     ///
     /// Can a given player castle kingside?
@@ -544,6 +532,13 @@ impl Board {
         (self.get_legal_moves(self.get_turn()).is_empty() && !self.is_in_check(self.get_turn()))
             || (self.has_insufficient_material(self.turn)
                 && self.has_insufficient_material(!self.turn))
+    }
+
+    /// ### is_check
+    ///
+    /// Checks whether current player is in check
+    pub fn is_check(&self) -> bool {
+        self.is_in_check(self.get_turn())
     }
 
     /// ### is_checkmate
@@ -769,6 +764,18 @@ impl Board {
     }
 
     // -- private
+
+    /// ### is_in_check
+    ///
+    /// Get whether or not the king of a given color is in check.
+    #[inline]
+    fn is_in_check(&self, color: Color) -> bool {
+        if let Some(king_pos) = self.get_king_pos(color) {
+            self.is_threatened(king_pos, color)
+        } else {
+            false
+        }
+    }
 
     /// ### get_square
     ///
@@ -1501,6 +1508,16 @@ mod test {
         board.add_piece(Piece::Queen(BLACK, E2));
         assert_eq!(board.is_in_check(WHITE), true);
         assert_eq!(board.is_in_check(BLACK), true);
+    }
+
+    #[test]
+    fn is_check() {
+        let mut board: Board = Board::default();
+        assert_eq!(board.is_check(), false);
+        board.add_piece(Piece::Queen(WHITE, E7));
+        assert_eq!(board.is_check(), false);
+        board = board.change_turn();
+        assert_eq!(board.is_check(), true);
     }
 
     #[test]

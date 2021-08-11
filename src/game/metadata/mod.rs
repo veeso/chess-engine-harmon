@@ -282,7 +282,7 @@ impl Default for Metadata {
             round: None,
             white: None,
             black: None,
-            result: Result::Unknown,
+            result: Result::InProgress,
         }
     }
 }
@@ -421,7 +421,7 @@ mod test {
         assert_eq!(metadata.black, None);
         assert_eq!(metadata.date, None);
         assert_eq!(metadata.event, None);
-        assert_eq!(metadata.result, Result::Unknown);
+        assert_eq!(metadata.result, Result::InProgress);
         assert_eq!(metadata.round, None);
         assert_eq!(metadata.site, None);
         assert_eq!(metadata.white, None);

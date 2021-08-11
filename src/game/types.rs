@@ -2,91 +2,9 @@
 //!
 //! This module exposes different kind of types for `Game`
 
-use crate::{Color, Move, Piece, Position, Promotion};
+use crate::{Color, Move, Piece, Promotion};
 
 use core::time::Duration;
-
-// -- results
-
-/// ## GameResult
-///
-/// Describes the result of a game
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum GameResult {
-    /// The game continues without any problem
-    Continuing,
-    /// The game has ended; match the `EndGame` variant, to get the end game result
-    Ended(EndGame),
-    /// An illegal move was made. This can include many things,
-    /// such as moving a piece through another piece, attempting
-    /// to capture an allied piece, moving non-orthogonally or
-    /// non-diagonally, or non-knight-like according the rules
-    /// governing the movement of the piece. Additionally,
-    /// moves that put the player in check, (for example, moving a pinned piece),
-    /// are also illegal.
-    IllegalMove(Move),
-}
-
-/// ## EndGame
-///
-/// Describes the kind of end game
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum EndGame {
-    /// One player, the victor, checkmated the other.
-    /// This stores the color of the winner and the reason
-    Victory(Color, VictoryReason),
-    /// The game is draw. There are 3 conditions where this can happen:
-    ///
-    /// 1. The current player has no legal moves and not being in check
-    /// 2. both players have insufficient material on the board.
-    ///     Insufficient material consists of:
-    ///
-    ///     1. The player only has a king
-    ///     2. The player only has a king and a knight
-    ///     3. The player only has a king and two knights
-    ///     4. The player only has a king and a bishop
-    ///     5. The player only has a king and two bishops
-    ///
-    /// 3. Threefold repetition. The same moves are played for 3 turns
-    Draw,
-}
-
-/// ## VictoryReason
-///
-/// Describes the reason that brought the player to victory
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum VictoryReason {
-    Checkmate,
-    Resign,
-    Timeout,
-}
-
-impl GameResult {
-    /// ### was_illegal_move
-    ///
-    /// Returns whether game result was an illegal move
-    pub fn was_illegal_move(&self) -> bool {
-        matches!(self, GameResult::IllegalMove(_))
-    }
-}
-
-// -- event
-
-/// ## GameEvent
-///
-/// Describes an event "raised" after a move is played
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum GameEvent {
-    /// A pawn promotion is available
-    /// a `Promotion` must be performed via `promote()` method
-    Promotion(Position),
-    /// A threefold repetition has been detected.
-    ThreefoldRepetition,
-    /// A fivefold repetition has been detected.
-    FivefoldRepetition,
-    /// No event to report
-    None,
-}
 
 // -- moves
 
@@ -169,14 +87,5 @@ mod test {
         assert_eq!(m.time, Duration::from_secs(5));
         assert_eq!(m.piece_taken, None);
         assert_eq!(m.promotion, None);
-    }
-
-    #[test]
-    fn game_illegal_move() {
-        assert_eq!(
-            GameResult::IllegalMove(Move::Resign).was_illegal_move(),
-            true
-        );
-        assert_eq!(GameResult::Continuing.was_illegal_move(), false);
     }
 }
